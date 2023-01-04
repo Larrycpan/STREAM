@@ -22,7 +22,7 @@ STREAM combines the Steiner forest problem (SFP) model and submodular optimizati
 - bsgenome.hsapiens.ucsc.hg38
 
 # Installation
-The latest developmental version of STREAM can be downloaded from GitHub and installed from source by `devtools::install_github('YangLi-Bio/stream_core')`.
+The latest developmental version of STREAM can be downloaded from GitHub and installed from source by `devtools::install_github("YangLi-Bio/stream2")`.
 
 # License
 Scissor is licensed under the GNU General Public License v3.0.
