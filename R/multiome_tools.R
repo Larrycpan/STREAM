@@ -41,9 +41,10 @@ subset_object <- function(LTMG.obj, object, peak.assay = 'ATAC',
 #'
 #' @keywords internal
 #'
-#' @import cicero
 #' @importFrom dplyr %>%
 #' @importFrom monocle3 estimate_size_factors preprocess_cds reduce_dimension detect_genes
+#' @import SummarizedExperiment
+#' @import SingleCellExperiment
 #'
 build_graph <- function(obj.list, obj = NULL, rna.dis, atac.dis,
                         distance = 250000, cicero.covar = -Inf,
@@ -65,6 +66,9 @@ build_graph <- function(obj.list, obj = NULL, rna.dis, atac.dis,
   # Link enhancers to enhancers
   x <- Seurat::GetAssayData(object = obj, slot = "data", assay = peak.assay)
   summ <- Matrix::summary(x)
+  require(monocle3)
+  require(SummarizedExperiment)
+  require(SingleCellExperiment)
   # convert the matrix into a sparse matrix
 
   cicero.data <- data.frame(Origin = rownames(x)[summ$i],
