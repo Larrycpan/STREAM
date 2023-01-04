@@ -420,7 +420,8 @@ assemble_connections <- function (cicero_model_list, silent = FALSE) {
 
 #' 
 #' @import SingleCellExperiment 
-#' @import SummarizedExperiment 
+#' @import SummarizedExperiment
+#' @import monocle3
 #' 
 #' @keywords internal
 #' 
