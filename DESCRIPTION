@@ -1,7 +1,7 @@
-Package: stream
+Package: stream2
 Title: Enhancer-driven gene regulatory network inference from single-cell RNA-seq and ATAC-seq 
-Version: 1.0.0
-Date: 2022-12-17
+Version: 2.0.0
+Date: 2022-1-4
 Authors@R: 
   c(person(given = "Yang", 
           family = "Li", 
@@ -67,8 +67,6 @@ Imports:
     BSgenome.Hsapiens.UCSC.hg38,
     BSgenome.Mmusculus.UCSC.mm10,
     BSgenome.Mmusculus.UCSC.mm9,
-    monocle3,
-    cicero,
     data.table,
     dplyr,
     ensembldb,
@@ -78,6 +76,7 @@ Imports:
     IRISFGM,
     igraph, 
     Matrix,
+    monocle3,
     parallel,
     pbapply,
     pbmcapply,

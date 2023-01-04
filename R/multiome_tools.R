@@ -63,8 +63,6 @@ build_graph <- function(obj.list, obj = NULL, rna.dis, atac.dis,
 
 
   # Link enhancers to enhancers
-  require(monocle3)
-  require(cicero)
   x <- Seurat::GetAssayData(object = obj, slot = "data", assay = peak.assay)
   summ <- Matrix::summary(x)
   # convert the matrix into a sparse matrix
@@ -77,7 +75,7 @@ build_graph <- function(obj.list, obj = NULL, rna.dis, atac.dis,
   input.cds <- input.cds[Matrix::rowSums(monocle3::exprs(input.cds)) != 0, ] %>% estimate_size_factors %>%
     preprocess_cds(method = "LSI", verbose = FALSE) %>%
     reduce_dimension(reduction_method = 'UMAP', preprocess_method = "LSI")
-  umap.coords <- reducedDims(input.cds)$UMAP # obtain the UMAP coordinates
+  umap.coords <- SingleCellExperiment::reducedDims(input.cds)$UMAP # obtain the UMAP coordinates
   cicero.cds <- make_cicero_cds(input.cds, reduced_coordinates = umap.coords)
   genome.info <- data.frame(org.gs@seqinfo@seqnames,
                             org.gs@seqinfo@seqlengths) # genome sequence lengths
