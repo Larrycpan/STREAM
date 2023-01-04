@@ -418,7 +418,13 @@ assemble_connections <- function (cicero_model_list, silent = FALSE) {
 
 
 
-make_atac_cds <- function (input, binarize = FALSE) {
+#' 
+#' @import SingleCellExperiment 
+#' @import SummarizedExperiment 
+#' 
+#' @keywords internal
+#' 
+make_atac_cds <- function (input, binarize = FALSE ) {
 
   if (is(input, "character")) {
     assertthat::is.readable(input)
@@ -467,10 +473,10 @@ make_atac_cds <- function (input, binarize = FALSE) {
                                                              "sparseMatrix"),
                                                  cell_metadata = cellinfo,
                                                  gene_metadata = dhsinfo))
-  pData(atac_cds)$temp <- NULL
-  fData(atac_cds)$chr <- as.character(monocle3::fData(atac_cds)$chr)
-  fData(atac_cds)$bp1 <- as.numeric(as.character(monocle3::fData(atac_cds)$bp1))
-  fData(atac_cds)$bp2 <- as.numeric(as.character(monocle3::fData(atac_cds)$bp2))
+  monocle3::pData(atac_cds)$temp <- NULL
+  monocle3::fData(atac_cds)$chr <- as.character(monocle3::fData(atac_cds)$chr)
+  monocle3::fData(atac_cds)$bp1 <- as.numeric(as.character(monocle3::fData(atac_cds)$bp1))
+  monocle3::fData(atac_cds)$bp2 <- as.numeric(as.character(monocle3::fData(atac_cds)$bp2))
   atac_cds <- atac_cds[order(monocle3::fData(atac_cds)$chr, monocle3::fData(atac_cds)$bp1),
   ]
   atac_cds <- monocle3::detect_genes(atac_cds)
