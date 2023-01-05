@@ -66,9 +66,9 @@ build_graph <- function(obj.list, obj = NULL, rna.dis, atac.dis,
   # Link enhancers to enhancers
   x <- Seurat::GetAssayData(object = obj, slot = "data", assay = peak.assay)
   summ <- Matrix::summary(x)
-  require(monocle3)
-  require(SummarizedExperiment)
-  require(SingleCellExperiment)
+  # require(monocle3)
+  # require(SummarizedExperiment)
+  # require(SingleCellExperiment)
   # convert the matrix into a sparse matrix
 
   cicero.data <- data.frame(Origin = rownames(x)[summ$i],
@@ -80,7 +80,7 @@ build_graph <- function(obj.list, obj = NULL, rna.dis, atac.dis,
     preprocess_cds(method = "LSI", verbose = FALSE) %>%
     reduce_dimension(reduction_method = 'UMAP', preprocess_method = "LSI")
   umap.coords <- SingleCellExperiment::reducedDims(input.cds)$UMAP # obtain the UMAP coordinates
-  cicero.cds <- make_cicero_cds(input.cds, reduced_coordinates = umap.coords)
+  cicero.cds <- make_cicero_cds(input.cds, reduced_coordinates = umap.coords )
   genome.info <- data.frame(org.gs@seqinfo@seqnames,
                             org.gs@seqinfo@seqlengths) # genome sequence lengths
   colnames(genome.info) <- c("seqnames", "seqlengths") # rename the columns

@@ -135,7 +135,7 @@ org_to_DB <- function(org = "hg38") {
 
 
 
-generate_windows <- function (window, genomic_coords) {
+generate_windows <- function(window, genomic_coords) {
 
   if (!is(genomic_coords, "data.frame")) {
     chr_maxes <- read.table(genomic_coords)
@@ -159,7 +159,7 @@ generate_windows <- function (window, genomic_coords) {
 
 
 
-get_genomic_range <- function (grs, cds, win) {
+get_genomic_range <- function(grs, cds, win) {
 
   end1 <- as.numeric(as.character(GenomicRanges::end(grs[win])))
   end2 <- as.numeric(as.character(GenomicRanges::start(grs[win])))
@@ -198,7 +198,8 @@ find_distance_parameter <- function(dist_mat,
   it <- 0
   while(found != TRUE & it < maxit) {
     vals <- monocle3::exprs(gene_range)
-    cov_mat <- cov(as.data.frame(t(vals)))
+    # message (vals, "\n")
+    cov_mat <- cov(base::as.data.frame(t(vals)))
     diag(cov_mat) <- Matrix::diag(cov_mat) + 1e-4
 
     rho <- get_rho_mat(dist_mat, distance_parameter, s)
@@ -242,7 +243,7 @@ find_distance_parameter <- function(dist_mat,
 
 
 
-calc_dist_matrix <- function (gene_range) {
+calc_dist_matrix <- function(gene_range) {
 
   dist_mat <- Matrix::as.matrix(stats::dist(monocle3::fData(gene_range)$mean_bp))
   row.names(dist_mat) <- colnames(dist_mat) <- row.names(monocle3::fData(gene_range))
@@ -261,12 +262,12 @@ estimate_distance_parameter <- function(cds,
                                         distance_constraint = 250000,
                                         distance_parameter_convergence = 1e-22,
                                         max_elements = 200,
-                                        genomic_coords = cicero::human.hg19.genome,
+                                        genomic_coords = NULL,
                                         max_sample_windows = 500) {
 
-  require(monocle3)
-  require(SummarizedExperiment)
-  require(SingleCellExperiment)
+  # require(monocle3)
+  # require(SummarizedExperiment)
+  # require(SingleCellExperiment)
   
   
   assertthat::assert_that(is(cds, "cell_data_set"))
@@ -293,8 +294,10 @@ estimate_distance_parameter <- function(cds,
   it <- 0
 
   while(sample_num > distance_parameters_calced & it < max_sample_windows) {
+    # message (it, "\n")
     it <- it + 1
     win <- sample(seq_len(length(grs)), 1)
+    # message (win, "\n")
     GL <- "Error"
     win_range <- get_genomic_range(grs, cds, win)
 
@@ -345,13 +348,13 @@ get_rho_mat <- function(dist_matrix, distance_parameter, s) {
 
 
 
-generate_cicero_models <- function (cds, distance_parameter, s = 0.75, window = 5e+05,
+generate_cicero_models <- function(cds, distance_parameter, s = 0.75, window = 5e+05,
                                     max_elements = 200, genomic_coords = NULL)
 {
   
-  require(monocle3)
-  require(SummarizedExperiment)
-  require(SingleCellExperiment)
+  # require(monocle3)
+  # require(SummarizedExperiment)
+  # require(SingleCellExperiment)
   
   assertthat::assert_that(is(cds, "cell_data_set"))
   assertthat::assert_that(assertthat::is.number(distance_parameter))
@@ -363,9 +366,9 @@ generate_cicero_models <- function (cds, distance_parameter, s = 0.75, window = 
     assertthat::is.readable(genomic_coords)
   }
   grs <- generate_windows(window, genomic_coords)
-  fData(cds)$chr <- gsub("chr", "", monocle3::fData(cds)$chr)
-  fData(cds)$bp1 <- as.numeric(as.character(monocle3::fData(cds)$bp1))
-  fData(cds)$bp2 <- as.numeric(as.character(monocle3::fData(cds)$bp2))
+  monocle3::fData(cds)$chr <- gsub("chr", "", monocle3::fData(cds)$chr)
+  monocle3::fData(cds)$bp1 <- as.numeric(as.character(monocle3::fData(cds)$bp1))
+  monocle3::fData(cds)$bp2 <- as.numeric(as.character(monocle3::fData(cds)$bp2))
   outlist <- pbmcapply::pbmclapply(seq_len(length(grs)), 
                                    mc.cores = max(parallel::detectCores() / 2, 1),
                                 function(win) {
@@ -380,7 +383,7 @@ generate_cicero_models <- function (cds, distance_parameter, s = 0.75, window = 
                                   dist_matrix <- calc_dist_matrix(win_range)
                                   rho_mat <- get_rho_mat(dist_matrix, distance_parameter,
                                                          s)
-                                  vals <- Matrix::as.matrix(exprs(win_range))
+                                  vals <- Matrix::as.matrix(monocle3::exprs(win_range))
                                   cov_mat <- cov(t(vals))
                                   Matrix::diag(cov_mat) <- diag(cov_mat) + 1e-04
                                   GL <- glasso::glasso(cov_mat, rho_mat)
@@ -433,13 +436,9 @@ assemble_connections <- function (cicero_model_list, silent = FALSE) {
 
 
 #' 
-#' @import SingleCellExperiment 
-#' @import SummarizedExperiment
-#' @import monocle3
-#' 
 #' @keywords internal
 #' 
-make_atac_cds <- function (input, binarize = FALSE ) {
+make_atac_cds <- function(input, binarize = FALSE ) {
 
   if (is(input, "character")) {
     assertthat::is.readable(input)
@@ -484,6 +483,7 @@ make_atac_cds <- function (input, binarize = FALSE ) {
   sparse_intersect <- Matrix::sparseMatrix(i = intersect_lean_ord$site_name_num,
                                            j = intersect_lean_ord$cell_name_num,
                                            x = intersect_lean_ord$read_count)
+  invisible(require(SingleCellExperiment))
   atac_cds <- suppressWarnings(monocle3::new_cell_data_set(methods::as(sparse_intersect,
                                                              "sparseMatrix"),
                                                  cell_metadata = cellinfo,
@@ -518,9 +518,9 @@ run_cicero <- function(cds,
 
   if (!silent) print("Starting Cicero")
   if (!silent) print("Calculating distance_parameter value")
-  require(monocle3)
-  require(SummarizedExperiment)
-  require(SingleCellExperiment)
+  # require(monocle3)
+  # require(SummarizedExperiment)
+  # require(SingleCellExperiment)
   distance_parameters <- estimate_distance_parameter(cds, window=window,
                                                      maxit=100, sample_num = sample_num,
                                                      distance_constraint = 250000,
@@ -571,7 +571,7 @@ split_peak_names <- function(inp) {
 
 
 
-make_cicero_cds <- function (cds, reduced_coordinates, k = 50, summary_stats = NULL,
+make_cicero_cds <- function(cds, reduced_coordinates, k = 50, summary_stats = NULL,
                              size_factor_normalize = TRUE, silent = FALSE,
                              return_agg_info = FALSE) {
 

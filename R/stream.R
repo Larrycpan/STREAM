@@ -97,16 +97,16 @@ run_stream <- function(obj = NULL,
   # Libraries
   set.seed(1234)
   if (org == "mm10") {
-    require(BSgenome.Mmusculus.UCSC.mm10)
+    invisible(require(BSgenome.Mmusculus.UCSC.mm10))
     org.gs <- BSgenome.Mmusculus.UCSC.mm10
   } else if (org == "mm9") {
-    require(BSgenome.Mmusculus.UCSC.mm9)
+    invisible(require(BSgenome.Mmusculus.UCSC.mm9))
     org.gs <- BSgenome.Mmusculus.UCSC.mm9
   } else if (org == "hg19") {
-    require(BSgenome.Hsapiens.UCSC.hg19)
+    invisible(require(BSgenome.Hsapiens.UCSC.hg19)))
     org.gs <- BSgenome.Hsapiens.UCSC.hg19
   } else {
-    require(BSgenome.Hsapiens.UCSC.hg38)
+    invisible(require(BSgenome.Hsapiens.UCSC.hg38)
     org.gs <- BSgenome.Hsapiens.UCSC.hg38
   }
   message ("Loaded full genome sequences for ", org, ".")
