@@ -80,20 +80,20 @@ run_stream <- function(obj = NULL,
   }
   
   
-  # Add libraries
-  libs <- c(
-    "Seurat",
-    "Signac",
-    "dplyr",
-    "monocle3",
-    "data.table",
-    "Matrix",
-    "SummarizedExperiment",
-    "SingleCellExperiment",
-    "igraph"
-  )
-  invisible(require(easypackages))
-  invisible(libraries(libs))
+  # # Add libraries
+  # libs <- c(
+  #   "Seurat",
+  #   "Signac",
+  #   "dplyr",
+  #   "monocle3",
+  #   "data.table",
+  #   "Matrix",
+  #   "SummarizedExperiment",
+  #   "SingleCellExperiment",
+  #   "igraph"
+  # )
+  # invisible(require(easypackages))
+  # invisible(libraries(libs))
 
 
   # Quality control
@@ -132,7 +132,7 @@ run_stream <- function(obj = NULL,
   Seurat::DefaultAssay(obj) <- peak.assay
   obj <- Signac::RegionStats(object = obj, assay = peak.assay,
                      genome = org.gs)
-  message ("Computed  the GC content, region lengths, and dinucleotide base frequencies",
+  message ("Computed the GC content, region lengths, and dinucleotide base frequencies",
            " for regions in the ", peak.assay, " assay and add them to the feature metadata.")
   qs::qsave(obj, paste0(out.dir, "Obj_quality_ctr.qsave"))
   links.df <- filter_nearby_genes(obj = obj, peak.assay = peak.assay)

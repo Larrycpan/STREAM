@@ -95,7 +95,8 @@ find_distance_parameter <- function(dist_mat,
   it <- 0
   while(found != TRUE & it < maxit) {
     vals <- monocle3::exprs(gene_range)
-    # message (vals, "\n")
+    message (class(vals), "\n")
+    message (dim(vals), "\n")
     cov_mat <- cov(base::as.data.frame(t(vals)))
     diag(cov_mat) <- Matrix::diag(cov_mat) + 1e-4
     
@@ -165,7 +166,7 @@ estimate_distance_parameter <- function(cds,
                                         distance_parameter_convergence = 1e-22,
                                         max_elements = 200,
                                         genomic_coords = NULL,
-                                        max_sample_windows = 500) {
+                                        max_sample_windows = 500 ) {
   
   # require(monocle3)
   # require(SummarizedExperiment)
@@ -199,7 +200,7 @@ estimate_distance_parameter <- function(cds,
     # message (it, "\n")
     it <- it + 1
     win <- sample(seq_len(length(grs)), 1)
-    # message (win, "\n")
+    message (win, "\n")
     GL <- "Error"
     win_range <- get_genomic_range(grs, cds, win)
     
