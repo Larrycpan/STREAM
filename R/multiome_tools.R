@@ -39,6 +39,11 @@ subset_object <- function(LTMG.obj, object, peak.assay = 'ATAC',
 
 #' Build a list of heterogeneous graphs based on the input list of \code{Seurat} objects
 #'
+#' @include epigenome_tools.R
+#' 
+
+
+
 #' @keywords internal
 #'
 #' @importFrom dplyr %>%
