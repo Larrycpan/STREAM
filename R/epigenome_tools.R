@@ -264,6 +264,11 @@ estimate_distance_parameter <- function(cds,
                                         genomic_coords = cicero::human.hg19.genome,
                                         max_sample_windows = 500) {
 
+  require(monocle3)
+  require(SummarizedExperiment)
+  require(SingleCellExperiment)
+  
+  
   assertthat::assert_that(is(cds, "cell_data_set"))
   assertthat::assert_that(assertthat::is.number(window))
   assertthat::assert_that(assertthat::is.count(maxit))
@@ -343,6 +348,11 @@ get_rho_mat <- function(dist_matrix, distance_parameter, s) {
 generate_cicero_models <- function (cds, distance_parameter, s = 0.75, window = 5e+05,
                                     max_elements = 200, genomic_coords = NULL)
 {
+  
+  require(monocle3)
+  require(SummarizedExperiment)
+  require(SingleCellExperiment)
+  
   assertthat::assert_that(is(cds, "cell_data_set"))
   assertthat::assert_that(assertthat::is.number(distance_parameter))
   assertthat::assert_that(assertthat::is.number(s), s < 1,
@@ -390,6 +400,10 @@ generate_cicero_models <- function (cds, distance_parameter, s = 0.75, window = 
 
 assemble_connections <- function (cicero_model_list, silent = FALSE) {
 
+  require(monocle3)
+  require(SummarizedExperiment)
+  require(SingleCellExperiment)
+  
   types <- vapply(cicero_model_list, FUN = class, FUN.VALUE = "character")
   char_hbn <- cicero_model_list[types == "character"]
   gl_only <- cicero_model_list[types == "list"]
@@ -504,6 +518,9 @@ run_cicero <- function(cds,
 
   if (!silent) print("Starting Cicero")
   if (!silent) print("Calculating distance_parameter value")
+  require(monocle3)
+  require(SummarizedExperiment)
+  require(SingleCellExperiment)
   distance_parameters <- estimate_distance_parameter(cds, window=window,
                                                      maxit=100, sample_num = sample_num,
                                                      distance_constraint = 250000,
