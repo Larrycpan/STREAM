@@ -94,7 +94,10 @@ find_distance_parameter <- function(dist_mat,
   distance_parameter_min <- 0
   it <- 0
   while(found != TRUE & it < maxit) {
-    vals <- as(monocle3::exprs(gene_range), "dgCMatrix")
+    vals <- monocle3::exprs(gene_range)
+    if (!"dgCMatrix" %in% class(vals)) {
+      browser()
+    }
     cov_mat <- cov(base::as.data.frame(t(vals)))
     diag(cov_mat) <- Matrix::diag(cov_mat) + 1e-4
     
