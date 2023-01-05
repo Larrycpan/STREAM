@@ -95,7 +95,8 @@ find_distance_parameter <- function(dist_mat,
   it <- 0
   while(found != TRUE & it < maxit) {
     vals <- monocle3::exprs(gene_range)
-    message (class(base::as.data.frame(t(vals))), "\n")
+    message (class(vals), "\n")
+    message (vals[1:2, 1:2], "\n\n\n")
     cov_mat <- cov(base::as.data.frame(t(vals)))
     diag(cov_mat) <- Matrix::diag(cov_mat) + 1e-4
     
@@ -199,7 +200,7 @@ estimate_distance_parameter <- function(cds,
     # message (it, "\n")
     it <- it + 1
     win <- sample(seq_len(length(grs)), 1)
-    message (win, "\n")
+    # message (win, "\n")
     GL <- "Error"
     win_range <- get_genomic_range(grs, cds, win)
     
@@ -212,11 +213,11 @@ estimate_distance_parameter <- function(cds,
     
     dist_matrix <- calc_dist_matrix(win_range)
     
-    distance_parameter <- find_distance_parameter(dist_matrix,
-                                                  win_range,
+    distance_parameter <- find_distance_parameter(dist_mat = dist_matrix,
+                                                  gene_range = win_range,
                                                   maxit = maxit,
                                                   null_rho = 0,
-                                                  s,
+                                                  s = s,
                                                   distance_constraint = distance_constraint,
                                                   distance_parameter_convergence = 
                                                     distance_parameter_convergence)
