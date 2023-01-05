@@ -91,7 +91,6 @@ Imports:
     utils
 Collate: 
     'cistrome_tools.R'
-    'epigenome_tools.R'
     'multiome_tools.R'
     'reguome_tools.R'
     'run_stream.R'
