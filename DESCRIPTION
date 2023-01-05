@@ -69,6 +69,7 @@ Imports:
     BSgenome.Mmusculus.UCSC.mm9,
     data.table,
     dplyr,
+    easypackages,
     ensembldb,
     GenomeInfoDb,
     GenomicAlignments,
@@ -98,3 +99,6 @@ Collate:
     'stream2.R'
     'transcriptome_tools.R'
     'utilities.R'
+Suggests: 
+    testthat (>= 3.0.0)
+Config/testthat/edition: 3

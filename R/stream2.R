@@ -1,7 +1,6 @@
 #' stream2
 #'
 #' @import data.table
-#' @importFrom dplyr %>% filter distinct
 #' @importFrom Matrix summary rowSums colSums
 #' @importFrom monocle3 estimate_size_factors preprocess_cds reduce_dimension detect_genes
 #' @import SummarizedExperiment

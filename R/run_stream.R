@@ -78,6 +78,22 @@ run_stream <- function(obj = NULL,
     message ("Creating the directory: ", out.dir, " to save the intermediate or final results ...")
     dir.create(out.dir)
   }
+  
+  
+  # Add libraries
+  libs <- c(
+    "Seurat",
+    "Signac",
+    "dplyr",
+    "monocle3",
+    "data.table",
+    "Matrix",
+    "SummarizedExperiment",
+    "SingleCellExperiment",
+    "igraph"
+  )
+  invisible(require(easypackages))
+  invisible(libraries(libs))
 
 
   # Quality control
