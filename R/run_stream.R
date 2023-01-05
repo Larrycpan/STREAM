@@ -1,11 +1,11 @@
-#' @include cistrome_tools.R
-#' @include epigenome_tools.R
-#' @include multiome_tools.R
-#' @include reguome_tools.R
-#' @include transcriptome_tools.R
-#' @include utilities.R
+# #' @include cistrome_tools.R
+# #' @include epigenome_tools.R
+# #' @include multiome_tools.R
+# #' @include reguome_tools.R
+# #' @include transcriptome_tools.R
+# #' @include utilities.R
 #'
-NULL
+# NULL
 
 #' Identify enhancer regulons (eRegulons) from jointly profiled scRNA-seq and scATAC-seq data
 #'

@@ -87,6 +87,7 @@ Imports:
     Seurat,
     Signac,
     stats,
+    SummarizedExperiment,
     utils
 Collate: 
     'cistrome_tools.R'
@@ -95,4 +96,5 @@ Collate:
     'reguome_tools.R'
     'utilities.R'
     'transcriptome_tools.R'
-    'stream.R'
+    'stream2.R'
+    'run_stream.R'
