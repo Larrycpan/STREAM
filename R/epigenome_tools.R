@@ -95,8 +95,7 @@ find_distance_parameter <- function(dist_mat,
   it <- 0
   while(found != TRUE & it < maxit) {
     vals <- monocle3::exprs(gene_range)
-    message (class(vals), "\n")
-    message (dim(vals), "\n")
+    message (class(base::as.data.frame(t(vals))), "\n")
     cov_mat <- cov(base::as.data.frame(t(vals)))
     diag(cov_mat) <- Matrix::diag(cov_mat) + 1e-4
     
@@ -219,7 +218,7 @@ estimate_distance_parameter <- function(cds,
                                                   null_rho = 0,
                                                   s,
                                                   distance_constraint = distance_constraint,
-                                                  distance_parameter_convergence =
+                                                  distance_parameter_convergence = 
                                                     distance_parameter_convergence)
     
     if (!is(distance_parameter, "numeric")) next()
