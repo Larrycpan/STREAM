@@ -349,8 +349,7 @@ get_rho_mat <- function(dist_matrix, distance_parameter, s) {
 
 
 generate_cicero_models <- function(cds, distance_parameter, s = 0.75, window = 5e+05,
-                                    max_elements = 200, genomic_coords = NULL)
-{
+                                    max_elements = 200, genomic_coords = NULL) {
   
   # require(monocle3)
   # require(SummarizedExperiment)

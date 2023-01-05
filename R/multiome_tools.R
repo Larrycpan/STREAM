@@ -1,3 +1,9 @@
+#' @include epigenome_tools.R
+#' 
+NULL
+
+
+
 #' Subset a \code{Seurat} object
 #'
 #' @import dplyr
