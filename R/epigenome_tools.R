@@ -71,68 +71,68 @@ get_genomic_range <- function(grs, cds, win) {
 }
 
 
-
-# find_distance_parameter <- function(dist_mat,
-#                                     gene_range,
-#                                     maxit,
-#                                     null_rho,
-#                                     s,
-#                                     distance_constraint,
-#                                     distance_parameter_convergence) {
-#   
-#   if (sum(dist_mat > distance_constraint) / 2 < 1) {
-#     return("No long edges")
-#   }
-#   
-#   found <- FALSE
-#   starting_max <- 2
-#   distance_parameter <- 2
-#   distance_parameter_max <- 2
-#   distance_parameter_min <- 0
-#   it <- 0
-#   while(found != TRUE & it < maxit) {
-#     vals <- monocle3::exprs(gene_range)
-#     cov_mat <- cov(base::as.data.frame(t(vals)))
-#     diag(cov_mat) <- Matrix::diag(cov_mat) + 1e-4
-#     
-#     rho <- get_rho_mat(dist_mat, distance_parameter, s)
-#     
-#     GL <- glasso::glasso(cov_mat, rho)
-#     big_entries <- sum(dist_mat > distance_constraint)
-#     
-#     if (((sum(GL$wi[dist_mat > distance_constraint] != 0) / big_entries) > 0.05) |
-#         (sum(GL$wi == 0) / (nrow(GL$wi) ^ 2) < 0.2 ) ) {
-#       longs_zero <- FALSE
-#     } else {
-#       longs_zero <- TRUE
-#     }
-#     
-#     if (longs_zero != TRUE | (distance_parameter == 0)) {
-#       distance_parameter_min <- distance_parameter
-#     } else {
-#       distance_parameter_max <- distance_parameter
-#     }
-#     new_distance_parameter <- (distance_parameter_min +
-#                                  distance_parameter_max)/2
-#     
-#     if(new_distance_parameter == starting_max) {
-#       new_distance_parameter <- 2 * starting_max
-#       starting_max <- new_distance_parameter
-#     }
-#     
-#     if (distance_parameter_convergence > abs(distance_parameter -
-#                                              new_distance_parameter)) {
-#       found <- TRUE
-#     } else {
-#       distance_parameter <- new_distance_parameter
-#     }
-#     it <- it + 1
-#   }
-#   if (maxit == it) warning ("maximum iterations hit")
-#   
-#   
-#   return(distance_parameter)
-# }
+#'
+#' @export
+#' 
+find_distance_parameter <- function(dist_mat,
+                                    gene_range,
+                                    maxit,
+                                    null_rho,
+                                    s,
+                                    distance_constraint,
+                                    distance_parameter_convergence) {
+  
+  if (sum(dist_mat > distance_constraint)/2 < 1) {
+    return("No long edges")
+  }
+  
+  found <- FALSE
+  starting_max <- 2
+  distance_parameter <- 2
+  distance_parameter_max <- 2
+  distance_parameter_min <- 0
+  it <- 0
+  while(found != TRUE & it < maxit) {
+    vals <- as.matrix(monocle3::exprs(gene_range))
+    cov_mat <- cov(t(vals))
+    diag(cov_mat) <- diag(cov_mat) + 1e-4
+    
+    rho <- get_rho_mat(dist_mat, distance_parameter, s)
+    
+    GL <- glasso::glasso(cov_mat, rho)
+    big_entries <- sum(dist_mat > distance_constraint)
+    
+    if (((sum(GL$wi[dist_mat > distance_constraint] != 0)/big_entries) > 0.05) |
+        (sum(GL$wi == 0)/(nrow(GL$wi)^2) < 0.2 ) ) {
+      longs_zero <- FALSE
+    } else {
+      longs_zero <- TRUE
+    }
+    
+    if (longs_zero != TRUE | (distance_parameter == 0)) {
+      distance_parameter_min <- distance_parameter
+    } else {
+      distance_parameter_max <- distance_parameter
+    }
+    new_distance_parameter <- (distance_parameter_min +
+                                 distance_parameter_max)/2
+    
+    if(new_distance_parameter == starting_max) {
+      new_distance_parameter <- 2 * starting_max
+      starting_max <- new_distance_parameter
+    }
+    
+    if (distance_parameter_convergence > abs(distance_parameter -
+                                             new_distance_parameter)) {
+      found <- TRUE
+    } else {
+      distance_parameter <- new_distance_parameter
+    }
+    it <- it + 1
+  }
+  if (maxit == it) warning("maximum iterations hit")
+  return(distance_parameter)
+}
 
 
 
@@ -162,11 +162,6 @@ estimate_distance_parameter <- function(cds,
                                         max_elements = 200,
                                         genomic_coords = NULL,
                                         max_sample_windows = 500 ) {
-  
-  # require(monocle3)
-  # require(SummarizedExperiment)
-  # require(SingleCellExperiment)
-  
   
   assertthat::assert_that(is(cds, "cell_data_set"))
   assertthat::assert_that(assertthat::is.number(window))
@@ -207,73 +202,6 @@ estimate_distance_parameter <- function(cds,
     }
     
     dist_matrix <- calc_dist_matrix(win_range)
-    
-    
-    #########################
-    
-    find_distance_parameter <- function(dist_mat,
-                                        gene_range,
-                                        maxit,
-                                        null_rho,
-                                        s,
-                                        distance_constraint,
-                                        distance_parameter_convergence) {
-      
-      if (sum(dist_mat > distance_constraint) / 2 < 1) {
-        return("No long edges")
-      }
-      
-      found <- FALSE
-      starting_max <- 2
-      distance_parameter <- 2
-      distance_parameter_max <- 2
-      distance_parameter_min <- 0
-      it <- 0
-      while(found != TRUE & it < maxit) {
-        vals <- monocle3::exprs(gene_range)
-        cov_mat <- cov(base::as.data.frame(t(vals)))
-        diag(cov_mat) <- Matrix::diag(cov_mat) + 1e-4
-        
-        rho <- get_rho_mat(dist_mat, distance_parameter, s)
-        
-        GL <- glasso::glasso(cov_mat, rho)
-        big_entries <- sum(dist_mat > distance_constraint)
-        
-        if (((sum(GL$wi[dist_mat > distance_constraint] != 0) / big_entries) > 0.05) |
-            (sum(GL$wi == 0) / (nrow(GL$wi) ^ 2) < 0.2 ) ) {
-          longs_zero <- FALSE
-        } else {
-          longs_zero <- TRUE
-        }
-        
-        if (longs_zero != TRUE | (distance_parameter == 0)) {
-          distance_parameter_min <- distance_parameter
-        } else {
-          distance_parameter_max <- distance_parameter
-        }
-        new_distance_parameter <- (distance_parameter_min +
-                                     distance_parameter_max)/2
-        
-        if(new_distance_parameter == starting_max) {
-          new_distance_parameter <- 2 * starting_max
-          starting_max <- new_distance_parameter
-        }
-        
-        if (distance_parameter_convergence > abs(distance_parameter -
-                                                 new_distance_parameter)) {
-          found <- TRUE
-        } else {
-          distance_parameter <- new_distance_parameter
-        }
-        it <- it + 1
-      }
-      if (maxit == it) warning ("maximum iterations hit")
-      
-      
-      return(distance_parameter)
-    }
-    
-    #########################
     
     
     distance_parameter <- find_distance_parameter(dist_mat = dist_matrix,
@@ -322,11 +250,7 @@ get_rho_mat <- function(dist_matrix, distance_parameter, s) {
 #' 
 generate_cicero_models <- function(cds, distance_parameter, s = 0.75, window = 5e+05,
                                    max_elements = 200, genomic_coords = NULL) {
-  
-  # require(monocle3)
-  # require(SummarizedExperiment)
-  # require(SingleCellExperiment)
-  
+
   assertthat::assert_that(is(cds, "cell_data_set"))
   assertthat::assert_that(assertthat::is.number(distance_parameter))
   assertthat::assert_that(assertthat::is.number(s), s < 1,
@@ -376,10 +300,6 @@ generate_cicero_models <- function(cds, distance_parameter, s = 0.75, window = 5
 #' @export
 #' 
 assemble_connections <- function (cicero_model_list, silent = FALSE) {
-  
-  require(monocle3)
-  require(SummarizedExperiment)
-  require(SingleCellExperiment)
   
   types <- vapply(cicero_model_list, FUN = class, FUN.VALUE = "character")
   char_hbn <- cicero_model_list[types == "character"]
@@ -495,9 +415,6 @@ run_cicero <- function(cds,
   
   if (!silent) print("Starting Cicero")
   if (!silent) print("Calculating distance_parameter value")
-  # require(monocle3)
-  # require(SummarizedExperiment)
-  # require(SingleCellExperiment)
   distance_parameters <- estimate_distance_parameter(cds, window=window,
                                                      maxit=100, sample_num = sample_num,
                                                      distance_constraint = 250000,
