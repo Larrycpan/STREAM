@@ -15,7 +15,7 @@ run_stream(
   top.ngenes = 5,
   c.cutoff = 1,
   n.blocks = 100,
-  distance = 250000,
+  distance = 5e+05,
   ifWeighted = TRUE,
   cicero.covar = -Inf,
   signac.score = -Inf,
