@@ -37,7 +37,7 @@ find_TFBS <- function(m.atac, TFBS.list, org = "hg38") {
 #' Discover cell-subpopulation-active TF-target pairs
 #'
 #' @importFrom dplyr %>%
-#' @importFrom igraph %--%
+#' @import igraph
 #'
 #' @keywords internal
 #'

@@ -18,7 +18,7 @@ SFP_seeding(
   Q = NULL,
   score.cutoff = 1,
   TOP_TFS = Inf,
-  ifWeighted = FALSE,
+  ifWeighted = TRUE,
   quantile.cutoff = 4
 )
 }

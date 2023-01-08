@@ -35,6 +35,8 @@
 #' @param quantile.cutoff The quantile cutoff of the ratio of HBC cells, where enhancers are accessible,
 #' 4 by default, indicating the top-25% among ranks
 #' @param submod.step The step size of the number of HBCs for submodular optimization, 30 by default
+#' @param filter_peaks_for_cicero Whether filter the peaks based on the Signac results before running Cicero, 
+#' FALSE by default
 #'
 #' @rdname run_stream
 #' @concept run_stream
@@ -56,6 +58,7 @@ run_stream <- function(obj = NULL,
                        c.cutoff = 1.0,
                        n.blocks = 100,
                        distance = 5e+05,
+                       filter_peaks_for_cicero = FALSE,
                        ifWeighted = TRUE,
                        cicero.covar = -Inf,
                        signac.score = -Inf,
@@ -73,6 +76,11 @@ run_stream <- function(obj = NULL,
                        min.eRegs = 100
                        ) {
 
+  # Set start time
+  start.time <- Sys.time()
+  message ("Began running STREAM2 at time: \n", start.time)
+  
+  
   # Check parameters
   if (!dir.exists(out.dir)) {
     message ("Creating the directory: ", out.dir, " to save the intermediate or final results ...")
@@ -97,8 +105,8 @@ run_stream <- function(obj = NULL,
 
 
   # Quality control
-  peaks.use <- rownames(obj[[peak.assay]])[as.vector(as.character(BSgenome::seqnames(obj[[peak.assay]]@ranges)) %in%
-                                                       GenomeInfoDb::standardChromosomes(obj[[peak.assay]]@ranges))]
+  invisible(peaks.use <- rownames(obj[[peak.assay]])[as.vector(as.character(BSgenome::seqnames(obj[[peak.assay]]@ranges)) %in%
+                                                       GenomeInfoDb::standardChromosomes(obj[[peak.assay]]@ranges))])
   obj <- subset(obj,
                 features = c(
                   rownames(obj[["RNA"]])[!grepl("\\.", rownames(obj[["RNA"]]))],
@@ -112,19 +120,19 @@ run_stream <- function(obj = NULL,
 
   # Libraries
   set.seed(1234)
-  if (org == "mm10") {
-    invisible(require(BSgenome.Mmusculus.UCSC.mm10))
+  quiet(if (org == "mm10") {
+    require(BSgenome.Mmusculus.UCSC.mm10)
     org.gs <- BSgenome.Mmusculus.UCSC.mm10
   } else if (org == "mm9") {
-    invisible(require(BSgenome.Mmusculus.UCSC.mm9))
+    require(BSgenome.Mmusculus.UCSC.mm9)
     org.gs <- BSgenome.Mmusculus.UCSC.mm9
   } else if (org == "hg19") {
-    invisible(require(BSgenome.Hsapiens.UCSC.hg19))
+    require(BSgenome.Hsapiens.UCSC.hg19)
     org.gs <- BSgenome.Hsapiens.UCSC.hg19
   } else {
-    invisible(require(BSgenome.Hsapiens.UCSC.hg38))
+    require(BSgenome.Hsapiens.UCSC.hg38)
     org.gs <- BSgenome.Hsapiens.UCSC.hg38
-  }
+  })
   message ("Loaded full genome sequences for ", org, ".")
 
 
@@ -149,7 +157,7 @@ run_stream <- function(obj = NULL,
 
   # Find highly variable genes and top-ranked enhancers
   Seurat::DefaultAssay(obj) <- "RNA"
-  obj <- Seurat::SCTransform(obj, verbose = T, variable.features.n = var.genes)
+  suppressWarnings(obj <- Seurat::SCTransform(obj, verbose = FALSE, variable.features.n = var.genes))
   Seurat::DefaultAssay(obj) <- peak.assay
   obj <- Signac::RunTFIDF(obj) # frequency-inverse document frequency (TF-IDF) normalization
   obj <- Signac::FindTopFeatures(obj, min.cutoff = "q5")
@@ -221,7 +229,8 @@ run_stream <- function(obj = NULL,
                       distance = distance, cicero.covar = cicero.covar,
                       org.gs = org.gs, peak.assay = peak.assay,
                       signac.score = signac.score, signac.pval = signac.pval,
-                      min.cells = min.cells)
+                      filter_peaks_for_cicero = filter_peaks_for_cicero,
+                      min.cells = min.cells, out.dir = out.dir)
   flags <- sapply(G.list, is.not.null) # whether the graph is empty
   G.list <- G.list[flags] # filter the graphs
   obj.list <- obj.list[flags] # filter the Seurat objects
@@ -321,6 +330,12 @@ run_stream <- function(obj = NULL,
     rm(sim.m)
     submod.HBCs <- submod.obj$eRegs
     qs::qsave(submod.obj$obj, paste0(out.dir, "Submodular_scores.qsave"))
+    
+    
+    # Set end time
+    end.time <- Sys.time()
+    message ("Finished running STREAM2 at time: \n", end.time, "\n\n", 
+             "Total running time: ", end.time - start.time)
 
 
     return(submod.obj$eRegs)

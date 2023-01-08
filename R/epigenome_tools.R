@@ -312,7 +312,7 @@ assemble_connections <- function (cicero_model_list, silent = FALSE) {
   }
   cors <- lapply(gl_only, function(gl) {
     cors <- stats::cov2cor(gl$w)
-    data.table::melt(as.data.table(cors, keep.rownames = TRUE),
+    data.table::melt(data.table::as.data.table(cors, keep.rownames = TRUE),
                      measure = patterns("[0-9]"))
   })
   cors <- data.table::rbindlist(cors)

@@ -42,6 +42,26 @@ subset_object <- function(LTMG.obj, object, peak.assay = 'ATAC',
 
 
 
+#'
+#' @keywords internal
+#' 
+subset_GR_intervals <- function(GR = NULL, distance = 5e+05, 
+                    peaks = NULL) {
+  
+  return(peaks[unique(queryHits(GenomicAlignments::findOverlaps(
+    query = Signac::StringToGRanges(peaks), 
+    subject = Signac::Extend(
+      x = GR, 
+      upstream = distance, 
+      downstream = distance
+    ),
+    type = 'any',
+    select = 'all'
+  )))])
+}
+
+
+
 #' @keywords internal
 #'
 #' @importFrom dplyr %>%
@@ -50,11 +70,12 @@ subset_object <- function(LTMG.obj, object, peak.assay = 'ATAC',
 #' @import SingleCellExperiment
 #'
 build_graph <- function(obj.list, obj = NULL, rna.dis, atac.dis,
-                        distance = 250000, cicero.covar = -Inf,
+                        distance = 5e+5, cicero.covar = -Inf,
                         org.gs = BSgenome.Hsapiens.UCSC.hg38,
                         signac.score = -Inf, signac.pval = Inf,
-                        min.cells = 10, ifWeighted = F,
-                        peak.assay = 'ATAC') {
+                        min.cells = 10, ifWeighted = FALSE, 
+                        filter_peaks_for_cicero = FALSE,
+                        peak.assay = 'ATAC', out.dir = "./") {
 
   # Link enhancers to genes
   Seurat::DefaultAssay(obj) <- peak.assay
@@ -64,11 +85,19 @@ build_graph <- function(obj.list, obj = NULL, rna.dis, atac.dis,
   signac.links <- stats::setNames(data.frame(obj[[peak.assay]]@links$peak,
                                              obj[[peak.assay]]@links$gene), 
                                   c("node1", "node2"))
-  message ("Built ", nrow(signac.links), " enhancer-gene relations from the total dataset.")
+  message ("Built ", nrow(signac.links), " enhancer-gene relations from the total dataset.\n", 
+           "Saved Signac enhancer-gene links to file: ", out.dir, "Signac_links.qsave")
+  qs::qsave(signac.links, paste0(out.dir, "Signac_links.qsave"))
 
 
   # Link enhancers to enhancers
   x <- Seurat::GetAssayData(object = obj, slot = "data", assay = peak.assay)
+  if (filter_peaks_for_cicero) {
+    suppressWarnings(x <- x[subset_GR_intervals(GR = obj[[peak.assay]]@links, distance = distance, 
+                        peaks = rownames(x)), , drop = FALSE])
+    message ("Filtered enhancers before running Cicero, \n", 
+             "Obtaining ", nrow(x), " enhancers.")
+  }
   summ <- Matrix::summary(x)
   # require(monocle3)
   # require(SummarizedExperiment)
@@ -97,6 +126,9 @@ build_graph <- function(obj.list, obj = NULL, rna.dis, atac.dis,
            return(list(node1 = r[2], node2 = r[1], weight = r[3])))
   }), fill = T) %>% dplyr::distinct()
   coaccess.links <- coaccess.links[, c("node1", "node2")]
+  message ("Built ", nrow(coaccess.links), " co-accessible enhancer-enhancer links.\n", 
+           "Saved the Cicero enhancer-enhancer links to file: ", out.dir, "Cicero_links.qsave")
+  qs::qsave(coaccess.links, paste0(out.dir, "Cicero_links.qsave"))
 
 
   # Make graphs
@@ -133,7 +165,7 @@ build_graph <- function(obj.list, obj = NULL, rna.dis, atac.dis,
     }
 
     ig
-  }, mc.cores = max(1, parallel::detectCores() / 2)) )
+  }, mc.cores = max(1, parallel::detectCores() / 4)) )
 }
 
 
@@ -339,9 +371,10 @@ rearrange_cols <- function(df) {
 #'
 SFP_seeding <- function(G.list, obj.list, bound.TFs, binding.CREs, block.list,
                         TFGene.pairs, rna.dis, atac.dis, KL = "min.exp", P = NULL,
-                        Q = NULL, score.cutoff = 1, TOP_TFS = Inf, ifWeighted = FALSE,
+                        Q = NULL, score.cutoff = 1, TOP_TFS = Inf, ifWeighted = TRUE,
                         quantile.cutoff = 4) {
 
+  # Identify enhancer-gene relations to construct seeds
   seed.es <- Reduce(rbind, pbmcapply::pbmclapply(seq_along(obj.list), function(i) {
     G <- G.list[[i]] # the graph
     G.vs <- igraph::as_ids(V(G)) # all nodes
@@ -359,9 +392,11 @@ SFP_seeding <- function(G.list, obj.list, bound.TFs, binding.CREs, block.list,
 
     return(x.df)
   }, mc.cores = max(1, parallel::detectCores()) / 2) )
+  message ("Identified ", nrow(seed.es), " enhancer-gene relations using SFP model.")
 
 
-  seeds <- Reduce(c, pbmcapply::pbmclapply(unique(seed.es$terminal), function(i) {
+  # Built seeds for TFs of which sites are incorporated in JASPAR
+  seeds <- Reduce("c", pbmcapply::pbmclapply(unique(seed.es$terminal), function(i) {
     G <- G.list[[i]]
     block.cells <- obj.list[[i]]$cells # the cells where genes are coexpressed
     df <- seed.es[seed.es$terminal == i,] # get the data frame
@@ -409,6 +444,14 @@ SFP_seeding <- function(G.list, obj.list, bound.TFs, binding.CREs, block.list,
     })
   }, mc.cores = max(1, parallel::detectCores()) / 2) )
   # }) )
+  
+  
+  # Identify seeds of which sites are not included in JASPAR
+  putative.seeds <- pbmcapply::pbmclapply(unique(seed.es$terminal), function(i) {
+    ter.peaks <- seed.es[seed.es$terminal == i, "steiner_node"]
+  })
+  
+  
   seeds <- seeds[sapply(seeds, is.not.null)]
   seeds <- seeds[sapply(seeds, function(x) {
     length(x$genes) > 1 & length(x$cells) > 1

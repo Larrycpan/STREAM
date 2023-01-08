@@ -16,6 +16,7 @@ run_stream(
   c.cutoff = 1,
   n.blocks = 100,
   distance = 5e+05,
+  filter_peaks_for_cicero = FALSE,
   ifWeighted = TRUE,
   cicero.covar = -Inf,
   signac.score = -Inf,
@@ -57,6 +58,9 @@ run_stream(
 \item{n.blocks}{The cutoff of the maximum number of blocks output by IRIS-FGM, 100 by default}
 
 \item{distance}{The distance cutoff to build enhancer-enhancer relations, 250000 by default}
+
+\item{filter_peaks_for_cicero}{Whether filter the peaks based on the Signac results before running Cicero,
+FALSE by default}
 
 \item{intra.cutoff}{The cutoff to calculate pairwise similarity among HBCs associated with the same TFs,
 1.0 by default}

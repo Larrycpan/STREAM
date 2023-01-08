@@ -354,7 +354,7 @@ link_peaks_to_genes <- function(peak.obj = c("chrX-192989-220023", "chr2-1780950
 #'
 #' @keywords internal
 #' 
-link_peaks <- function (object, peak.assay = "ATAC", expression.assay = "RNA", 
+link_peaks <- function(object, peak.assay = "ATAC", expression.assay = "RNA", 
                         peak.slot = "counts", 
                         expression.slot = "data", method = "pearson", gene.coords = NULL, 
                         distance = 5e+05, min.distance = NULL, min.cells = 10, genes.use = NULL, 
