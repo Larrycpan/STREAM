@@ -292,7 +292,7 @@ run_stream <- function(obj = NULL,
                        rna.dis = rna.dis, atac.dis = atac.dis, KL = KL, 
                        peak.assay = peak.assay)
   if (length(seeds) < 1) {
-    stop ("No seeds was identified!")
+    stop ("No seeds was identified")
   }
   message (length(seeds), " seeds are identified for hybrid biclustering,\n",
            "which were saved to file: ", out.dir, "Seeds.qsave")
@@ -313,7 +313,8 @@ run_stream <- function(obj = NULL,
                          c.cutoff = c.cutoff, KL = KL, org.gs = org.gs,
                          intra.cutoff = intra.cutoff, inter.cutoff = inter.cutoff,
                          quantile.cutoff = quantile.cutoff,
-                         rna.dis = rna.dis, atac.dis = atac.dis, min.cells = min.cells)
+                         rna.dis = rna.dis, atac.dis = atac.dis, min.cells = min.cells, 
+                         ifPutativeTFs = ifPutativeTFs)
   gene.range <- sapply(HBCs, "[[", "genes") %>% sapply(., length) %>% range
   peak.range <- sapply(HBCs, "[[", "peaks") %>% sapply(., length) %>% range
   cell.range <- sapply(HBCs, "[[", "cells") %>% sapply(., length) %>% range

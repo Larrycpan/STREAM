@@ -365,15 +365,15 @@ rearrange_cols <- function(df) {
 
 #' Seeding based on Steiner forest problem (SFP) model
 #'
-#' @importFrom dplyr %>%
+#' @importFrom dplyr %>% arrange
 #'
 #' @keywords internal
 #'
-SFP_seeding <- function(obj = NULL, G.list, obj.list, bound.TFs, binding.CREs, block.list,
+SFP_seeding <- function(motif.obj = NULL, G.list, obj.list, bound.TFs, binding.CREs, block.list,
                         TFGene.pairs, rna.dis, atac.dis, KL = "min.exp", P = NULL,
                         Q = NULL, score.cutoff = 1, TOP_TFS = Inf, ifWeighted = TRUE,
                         quantile.cutoff = 4, peak.assay = "ATAC",
-                        ifPutativeTFs = FALSE) {
+                        ifPutativeTFs = FALSE, padj.cutoff = 0.05) {
 
   # Identify enhancer-gene relations to construct seeds
   seed.es <- Reduce(rbind, pbmcapply::pbmclapply(seq_along(obj.list), function(i) {
@@ -396,7 +396,7 @@ SFP_seeding <- function(obj = NULL, G.list, obj.list, bound.TFs, binding.CREs, b
   message ("Identified ", nrow(seed.es), " enhancer-gene relations using SFP model.")
 
 
-  # Built seeds for TFs of which sites are incorporated in JASPAR
+  # Built seeds for TFs of which sites are incorporated in JASPAR2022
   seeds <- Reduce("c", pbmcapply::pbmclapply(unique(seed.es$terminal), function(i) {
     G <- G.list[[i]]
     block.cells <- obj.list[[i]]$cells # the cells where genes are coexpressed
@@ -423,10 +423,11 @@ SFP_seeding <- function(obj = NULL, G.list, obj.list, bound.TFs, binding.CREs, b
       if (length(overlap.peaks) < 1) {
         return(NULL)
       }
-      overlap.genes <- df$terminal_node[df$terminal_node %in% overlap.genes &
-                                          df$steiner_node %in% overlap.peaks]
+      overlap.genes <- unique(df$terminal_node[df$terminal_node %in% overlap.genes &
+                                          df$steiner_node %in% overlap.peaks])
       atac.ratio <- ifelse (length(overlap.peaks) > 1,
-                            quantile((rowSums(atac.dis[overlap.peaks, block.cells, drop = FALSE])) /
+                            quantile((rowSums(atac.dis[overlap.peaks, 
+                                                       block.cells, drop = FALSE])) /
                               length(block.cells))[quantile.cutoff],
                             # the cutoff of consistency between accessibility and expression
 
@@ -434,7 +435,8 @@ SFP_seeding <- function(obj = NULL, G.list, obj.list, bound.TFs, binding.CREs, b
       )
       order.cells <- apply(rna.dis[overlap.genes, block.cells, drop = F], 2, sum) %>%
         sort(., decreasing = T) %>% names() # sort cells according to the sum of expression values
-      HBC <- list(terminal = i, TF = tt, genes = overlap.genes, peaks = overlap.peaks,
+      HBC <- list(terminal = i, Tier = 1, TF = tt, genes = overlap.genes,
+                  peaks = overlap.peaks,
                   cells = order.cells, atac.ratio = atac.ratio, score = 0, weight = 1)
       HBC$score <- score_HBC(HBC = HBC, KL = KL, m = rna.dis, P = P, Q = Q, G = G)
       if (ifWeighted) {
@@ -443,24 +445,66 @@ SFP_seeding <- function(obj = NULL, G.list, obj.list, bound.TFs, binding.CREs, b
       }
       return(HBC)
     })
+    
+    
+    return(ter.seeds)
   }, mc.cores = max(1, parallel::detectCores()) / 2) )
   # }) )
   
   
-  # Identify seeds of which sites are not included in JASPAR
+  # Putative TFs not included in JASPAR 2022
   if (ifPutativeTFs) {
-    putative.seeds <- pbmcapply::pbmclapply(unique(seed.es$terminal), function(i) {
-
-      # Test enrichment
-      suppressWarnings(enriched.motifs <- Signac::FindMotifs(
-        object = motif.obj,
-        features = intersect(rownames(Signac::GetMotifData(object = motif.obj, 
-                                                           assay = peak.assay, 
-                                                   slot = "data")), 
-                                      seed.es[seed.es$terminal == i, "steiner_node"]) , 
-        assay = peak.assay
-      ))
-    })
+    puta.seeds <- pbmcapply::pbmclapply(
+      unique(seed.es$terminal), 
+      mc.cores = max(1, parallel::detectCores()) / 2, 
+      function(i) {
+        
+        message (i)
+        # Test enrichment
+        features <- 
+          intersect(rownames(Signac::GetMotifData(object = motif.obj, 
+                                                  assay = peak.assay, 
+                                                  slot = "data")), 
+                    seed.es[seed.es$terminal == i, "steiner_node"])
+        suppressWarnings(enriched.motifs <- tryCatch(Signac::FindMotifs(
+          object = motif.obj,
+          features = features, 
+          assay = peak.assay
+        ), error = function (e) { 0 }))
+        if (is.numeric(enriched.motifs)) {
+          return(NULL)
+        }
+        tt <- enriched.motifs[enriched.motifs$p.adjust < padj.cutoff, , 
+                              drop = FALSE] %>% arrange(pvalue) %>% 
+          head(n = 1) %>% pull("motif.name")
+        if (identical(tt, character(0))) {
+          return(NULL)
+        }
+        puta.genes <- unique(seed.es[seed.es$terminal == i,
+                                     "terminal_node"])
+        HBC <- list(terminal = i, Tier = 2, TF = tt, 
+                    genes = puta.genes,
+                    peaks = features,
+                    cells = apply(rna.dis[puta.genes, block.cells, 
+                                          drop = F], 2, sum) %>%
+                      sort(., decreasing = T) %>% names(), 
+                    # sort cells according to the sum of 
+                    # expression values
+                    score = 0, weight = 1)
+        HBC$atac.ratio <- 
+          ifelse (length(features) > 1,
+                  quantile((rowSums(atac.dis[features, 
+                                             HBC$cells,
+                                             drop = FALSE])) / 
+                             length(HBC$cells))[quantile.cutoff],
+                  sum(atac.dis[features, HBC$cells]) / 
+                    length(HBC$cells)
+          )
+        
+        return(HBC)
+      }
+    )
+    seeds <- c(seeds, puta.seeds)
   }
   
   
