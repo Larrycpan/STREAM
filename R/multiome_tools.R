@@ -369,10 +369,11 @@ rearrange_cols <- function(df) {
 #'
 #' @keywords internal
 #'
-SFP_seeding <- function(G.list, obj.list, bound.TFs, binding.CREs, block.list,
+SFP_seeding <- function(obj = NULL, G.list, obj.list, bound.TFs, binding.CREs, block.list,
                         TFGene.pairs, rna.dis, atac.dis, KL = "min.exp", P = NULL,
                         Q = NULL, score.cutoff = 1, TOP_TFS = Inf, ifWeighted = TRUE,
-                        quantile.cutoff = 4) {
+                        quantile.cutoff = 4, peak.assay = "ATAC",
+                        ifPutativeTFs = FALSE) {
 
   # Identify enhancer-gene relations to construct seeds
   seed.es <- Reduce(rbind, pbmcapply::pbmclapply(seq_along(obj.list), function(i) {
@@ -447,9 +448,20 @@ SFP_seeding <- function(G.list, obj.list, bound.TFs, binding.CREs, block.list,
   
   
   # Identify seeds of which sites are not included in JASPAR
-  putative.seeds <- pbmcapply::pbmclapply(unique(seed.es$terminal), function(i) {
-    ter.peaks <- seed.es[seed.es$terminal == i, "steiner_node"]
-  })
+  if (ifPutativeTFs) {
+    putative.seeds <- pbmcapply::pbmclapply(unique(seed.es$terminal), function(i) {
+
+      # Test enrichment
+      suppressWarnings(enriched.motifs <- Signac::FindMotifs(
+        object = motif.obj,
+        features = intersect(rownames(Signac::GetMotifData(object = motif.obj, 
+                                                           assay = peak.assay, 
+                                                   slot = "data")), 
+                                      seed.es[seed.es$terminal == i, "steiner_node"]) , 
+        assay = peak.assay
+      ))
+    })
+  }
   
   
   seeds <- seeds[sapply(seeds, is.not.null)]

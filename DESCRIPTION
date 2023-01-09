@@ -76,8 +76,10 @@ Imports:
     GenomicRanges,
     IRISFGM,
     igraph, 
+    JASPAR2022,
     Matrix,
     monocle3,
+    motifmatchr,
     parallel,
     pbapply,
     pbmcapply,
@@ -89,6 +91,7 @@ Imports:
     Signac,
     stats,
     SummarizedExperiment,
+    TFBSTools,
     utils
 Collate: 
     'cistrome_tools.R'

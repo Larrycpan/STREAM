@@ -51,6 +51,7 @@ run_stream <- function(obj = NULL,
                        peak.assay = "ATAC",
                        var.genes = 3000,
                        top.peaks = 3000,
+                       ifPutativeTFs = FALSE,
                        min.cells = 10,
                        out.dir = "./",
                        org = "hg38",
@@ -252,13 +253,44 @@ run_stream <- function(obj = NULL,
   qs::qsave(TFGene.pairs, paste0(out.dir, "TF_target_pairs.qsave"))
   message ("Saved the TF-target pairs to file: ", out.dir, "TF_target_pairs.qsave.")
 
+  
+  # Add motif annotations (if demanded)
+  if (ifPutativeTFs) {
+    if (grepl("^mm", org)) {
+      tax.id <- 10090
+    } else {
+      tax.id <- 9606
+    }
+    quiet(require(JASPAR2022))
+    pfm <- TFBSTools::getMatrixSet(
+      x = JASPAR2022,
+      opts = list(collection = "CORE", 
+                  tax_group = 'vertebrates', 
+                  species = tax.id, 
+                  all_versions = FALSE)
+    )
+    quiet(require(motifmatchr))
+    quiet( obj <- Signac::AddMotifs(
+      object = obj,
+      genome = org.gs,
+      pfm = pfm
+    ) )
+    motif.obj <- subset(obj, features = 
+                          intersect(rownames(obj[[peak.assay]]@motifs), 
+                                                  rownames(obj[[peak.assay]])))
+  } else {
+    motif.obj <- NULL
+  }
+  
 
   # Seeding based upon Steiner forest problem (SFP) model
-  seeds <- SFP_seeding(G.list = G.list, obj.list = obj.list, block.list = block.list,
+  seeds <- SFP_seeding(motif.obj = motif.obj, G.list = G.list, obj.list = obj.list, 
+                       block.list = block.list,
                        bound.TFs = bound.TFs, binding.CREs = binding.CREs,
                        TFGene.pairs = TFGene.pairs, score.cutoff = score.cutoff,
-                       quantile.cutoff = quantile.cutoff,
-                       rna.dis = rna.dis, atac.dis = atac.dis, KL = KL)
+                       quantile.cutoff = quantile.cutoff, ifPutativeTFs = ifPutativeTFs,
+                       rna.dis = rna.dis, atac.dis = atac.dis, KL = KL, 
+                       peak.assay = peak.assay)
   if (length(seeds) < 1) {
     stop ("No seeds was identified!")
   }
