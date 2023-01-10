@@ -613,3 +613,25 @@ reconcile <- function(values) {
   if (sum(values == 0) == length(values)) return(0)
   return(NA_real_)
 }
+
+
+
+#' Overlap two lists of \code{GRanges} objects
+#'
+#' @keywords internal
+#' 
+overlap_peak_lst <- function(lst1, lst2) {
+  
+  overlaps <- GenomicAlignments::findOverlaps(
+    query = lst1,
+    subject = lst2,
+    type = 'any',
+    select = 'all'
+  ) # find the peaks overlapped with the extended genomic ranges of genes
+  Matrix::sparseMatrix(
+    i = queryHits(x = overlaps),
+    j = subjectHits(x = overlaps),
+    x = 1,
+    dims = c(length(x = lst1), length(x = lst2))
+  ) # build a sparse matrix to record the overlaps between peaks and extended genomic ranges of genes
+}

@@ -459,8 +459,8 @@ SFP_seeding <- function(motif.obj = NULL, G.list, obj.list, bound.TFs, binding.C
       mc.cores = max(1, parallel::detectCores()) / 2, 
       function(i) {
         
-        message (i)
         # Test enrichment
+        block.cells <- obj.list[[i]]$cells # the cells where genes are coexpressed
         features <- 
           intersect(rownames(Signac::GetMotifData(object = motif.obj, 
                                                   assay = peak.assay, 
@@ -500,6 +500,11 @@ SFP_seeding <- function(motif.obj = NULL, G.list, obj.list, bound.TFs, binding.C
                   sum(atac.dis[features, HBC$cells]) / 
                     length(HBC$cells)
           )
+        HBC$score <- score_HBC(HBC = HBC, KL = KL, m = rna.dis, P = P, Q = Q, G = G)
+        if (ifWeighted) {
+          HBC$weight <- sum(atac.dis[HBC$peaks, HBC$cells]) /
+            sum(rna.dis[HBC$genes, HBC$cells])
+        }
         
         return(HBC)
       }
@@ -621,7 +626,7 @@ expand_core <- function(HBC, top.genes.peaks, rna.m, atac.m, G,
   end.mat <- as.data.frame(ends(G, E(G)[c(HBC$genes, choice.genes) %--% c(HBC$peaks, choice.peaks)]))
   choice.gene.peaks <- split(end.mat, f = end.mat[, 2]) %>% sapply(., "[[", 1)
   iter <- 0
-  score.end <- F
+  score.end <- FALSE
   while (T) {
     if (length(choice.genes) < 1) {
       break
@@ -915,11 +920,11 @@ inter_eligible_seed <- function(s, h,
 #' @keywords internal
 #'
 hybrid_biclust <- function(seeds = NULL, rna.list = NULL, atac.list = NULL,
-               top.ngenes = 5, bound.TFs = NULL, same.terminal = F,
+               top.ngenes = 5, bound.TFs = NULL, same.terminal = FALSE,
                binding.CREs = NULL, G.list = NULL, TFGene.pairs = NULL,
-               c.cutoff = 1.0, KL = "min.exp", org.gs = org.gs, ego.order = 1, closure = F,
+               c.cutoff = 1.0, KL = "min.exp", org.gs = org.gs, ego.order = 1, closure = FALSE,
                intra.cutoff = 1.0, inter.cutoff = 0.80,
-               peak.cutoff = 0.80, quantile.cutoff,
+               peak.cutoff = 0.80, quantile.cutoff = 4,
                rna.dis = NULL, atac.dis = NULL,
                min.cells = 10 ) {
 

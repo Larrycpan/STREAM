@@ -4,9 +4,8 @@
 #'
 #' @keywords internal
 #'
-find_TFBS <- function(m.atac, TFBS.list, org = "hg38") {
+find_TFBS <- function(peaks, TFBS.list, org = "hg38") {
 
-  peaks <- rownames(m.atac)
   if (grepl("mm", org)) {
     jaspar.sites <- TFBS.list[["Mouse"]]
   } else {
@@ -70,4 +69,33 @@ find_TF_gene <- function(G.list, bound.TFs,
 
     return(list(TF.genes = TF.genes, gene.TFs = gene.TFs))
   }, mc.cores = parallel::detectCores()) )
+}
+
+
+
+#' 
+#' @keywords internal
+#' 
+#' @importFrom Matrix summary
+#' @importFrom dplyr %>%
+#' 
+run_motifmatchr <- function(pfm = NULL, peaks = NULL, 
+                    org = BSgenome.Hsapiens.UCSC.hg38) {
+  
+  motif.ix <- motifmatchr::motifMatches(motifmatchr::matchMotifs(pwms = pfm, 
+                                                                 subject = Signac::StringToGRanges(peaks), 
+                                                                 genome = org.gs) ) %>% summary
+  TF.lst <- sapply(pfm, function(x) {
+    x@name
+  })
+  names(TF.lst) <- NULL
+  peak.TF.pairs <- data.frame(peaks[motif.ix[, 1]], 
+                              TF.lst[motif.ix[, 2]])
+  colnames(peak.TF.pairs) <- c("peak", "TF")
+  peak.TFs <- split(peak.TF.pairs, peak.TF.pairs$peak) %>% sapply(., "[[", "TF")
+  TF.peaks <- split(peak.TF.pairs, peak.TF.pairs$TF) %>% sapply(., "[[", "peak")
+  return(list(
+    puta.bound.TFs = peak.TFs, 
+    puta.binding.peaks = TF.peaks 
+  ))
 }

@@ -309,17 +309,18 @@ build_gene_GRanges <- function(org = "hg38") {
 
 
 
-#' Link enhancers to genes witrhin a distance cutoff
+#' Link enhancers to genes within a distance cutoff
 #'
-#'@importFrom Matrix summary
+#' @importFrom Matrix summary
+#' @importFrom dplyr %>%
 #'
 #' @keywords internal
 #'
 link_peaks_to_genes <- function(peak.obj = c("chrX-192989-220023", "chr2-178095031-178129859"),
                                 gene.obj = c("PLCXD1", "NFE2L2"),
-                                org = "hg38", distance = 250000) {
+                                org = "hg38", distance = 5e+05) {
 
-  peak.gr <- peak.obj
+  peak.gr <- Signac::StringToGRanges(peak.obj)
   gene.annotation <- build_gene_GRanges(org = org)
   if (grepl("^ENSG|ENSMUG", gene.annotation$gene_name[1])) {
     symbol.ll <- ensembl_to_symbol(ensembl.ll = gene.annotation$gene_name,

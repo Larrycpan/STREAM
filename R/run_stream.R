@@ -174,14 +174,30 @@ run_stream <- function(obj = NULL,
 
   # Annotate enhancers with TF binding sites
   load(url(url.link))
-  TF.CRE.pairs <- find_TFBS(Seurat::GetAssayData(obj, assay = peak.assay, slot = "data"),
+  TF.CRE.pairs <- find_TFBS(peaks = rownames(obj[[peak.assay]]),
                             TFBS.list = TFBS.list, org = org)
+  qs::qsave(TF.CRE.pairs, paste0(out.dir, "TF_binding_sites_on_enhs.qsave"))
   bound.TFs <- TF.CRE.pairs$CRE
   binding.CREs <- TF.CRE.pairs$TF
   rm(TF.CRE.pairs)
   message ("Identified ", length(binding.CREs), " TFs binding ",
            length(bound.TFs), " enhancers,\n",
            "which were saved to file: ", out.dir, "TF_binding_sites_on_enhs.qsave.")
+  
+  
+  # Identify TFs putatively binding enhancers based on the PWMs in JASPAR 2022
+  if (ifPutativeTFs) {
+    puta.TF.peak.pairs <- run_motifmatchr(pfm = pfm, 
+                                          peaks = rownames(obj[[peak.assay]]), 
+                                          org = org.gs)
+    qs::qsave(puta.TF.peak.pairs, paste0(out.dir, "Putative_TF_binding_sites_on_enhs.qsave"))
+    puta.bound.TFs <- puta.TF.peak.pairs$puta.bound.TFs
+    puta.binding.peaks <- puta.TF.peak.pairs$puta.binding.peaks
+    rm(puta.TF.peak.pairs)
+    message ("Identified ", length(puta.binding.peaks), " TFs putatively binding ",
+             length(puta.bound.TFs), " enhancers,\n",
+             "which were saved to file: ", out.dir, "Putative_TF_binding_sites_on_enhs.qsave.")
+  }
 
 
   # LTMG modeling
@@ -254,6 +270,15 @@ run_stream <- function(obj = NULL,
   message ("Saved the TF-target pairs to file: ", out.dir, "TF_target_pairs.qsave.")
 
   
+  # Discover putative cell-subpopulation-active TF-target pairs (based on motif enrichment)
+  if (ifPutativeTFs) {
+    puta.TF.gene.pairs <- find_TF_gene(G.list = G.list, bound.TFs = puta.bound.TFs,
+                                       binding.CREs = puta.binding.peaks)
+    qs::qsave(puta.TF.gene.pairs, paste0(out.dir, "Putative_TF_target_pairs.qsave"))
+    message ("Saved the putative TF-target pairs to file: ", out.dir, "Putative_TF_target_pairs.qsave.")
+  }
+  
+  
   # Add motif annotations (if demanded)
   if (ifPutativeTFs) {
     if (grepl("^mm", org)) {
@@ -305,16 +330,35 @@ run_stream <- function(obj = NULL,
   rm(obj.list)
 
 
-  # Hybrid biclustering
-  HBCs <- hybrid_biclust(seeds = seeds, rna.list = rna.list, atac.list = atac.list,
+  # Hybrid biclustering for Tier-1 seeds (TF binding sites from JASPAR 2022 database)
+  message ("Biclustering based on Tier-1 TF-enhancer binding annotations ...")
+  HBCs <- hybrid_biclust(seeds = seeds[(sapply(seeds, "[[", "Tier") == 1)], 
+                         rna.list = rna.list, atac.list = atac.list,
                          top.ngenes = top.ngenes, bound.TFs = bound.TFs,
                          binding.CREs = binding.CREs, G.list = G.list,
                          TFGene.pairs = TFGene.pairs, peak.cutoff = peak.cutoff,
                          c.cutoff = c.cutoff, KL = KL, org.gs = org.gs,
                          intra.cutoff = intra.cutoff, inter.cutoff = inter.cutoff,
                          quantile.cutoff = quantile.cutoff,
-                         rna.dis = rna.dis, atac.dis = atac.dis, min.cells = min.cells, 
-                         ifPutativeTFs = ifPutativeTFs)
+                         rna.dis = rna.dis, atac.dis = atac.dis, min.cells = min.cells)
+  
+  
+  # Hybrid biclustering for Tier-2 seeds (TF binding sites from motif enrichment)
+  if (ifPutativeTFs) {
+    message ("Biclustering based on Tier-2 motif enrichment ...")
+    puta.HBCs <- hybrid_biclust(seeds = seeds[(sapply(seeds, "[[", "Tier") == 2)], 
+                           rna.list = rna.list, atac.list = atac.list,
+                           top.ngenes = top.ngenes, bound.TFs = puta.bound.TFs,
+                           binding.CREs = puta.binding.peaks, G.list = G.list,
+                           TFGene.pairs = puta.TF.gene.pairs, peak.cutoff = peak.cutoff,
+                           c.cutoff = c.cutoff, KL = KL, org.gs = org.gs,
+                           intra.cutoff = intra.cutoff, inter.cutoff = inter.cutoff,
+                           quantile.cutoff = quantile.cutoff,
+                           rna.dis = rna.dis, atac.dis = atac.dis, min.cells = min.cells)
+    HBCs <- c(HBCs, puta.HBCs)
+  }
+  
+  
   gene.range <- sapply(HBCs, "[[", "genes") %>% sapply(., length) %>% range
   peak.range <- sapply(HBCs, "[[", "peaks") %>% sapply(., length) %>% range
   cell.range <- sapply(HBCs, "[[", "cells") %>% sapply(., length) %>% range
@@ -327,26 +371,12 @@ run_stream <- function(obj = NULL,
   qs::qsave(HBCs, paste0(out.dir, "HBCs.qsave"))
 
 
-  # Merge significantly overlapped HBCs
-  # merged.HBCs <- merge_HBCs(HBCs = HBCs, rna.dis = rna.dis, atac.dis = atac.dis)
-  # message (length(merged.HBCs), " HBCs are discovered after fine-tuning.\n")
-  # qs::qsave(merged.HBCs, paste0(out.dir, "HBCs_refined.qsave"))
-
-
   # Free some memory
   rm(TFGene.pairs)
   rm(atac.list)
   rm(atac.dis)
   # rm(HBCs)
   rm(bound.TFs)
-
-
-  # Optimize the HBCs before submodular optimization
-  # obj <- qs::qread(paste0(out.dir, "Obj_var_genes_top_enhs.qsave"))
-  # patched.HBCs <- patch_HBCs(merged.HBCs = merged.HBCs, binding.CREs = binding.CREs,
-  #                            x = obj, peak.assay = peak.assay,
-  #                            distance = patch.dist)
-  # qs::qsave(patched.HBCs, paste0(out.dir, "HBCs_optimized.qsave"))
 
 
   # Submodular optimization
@@ -373,20 +403,6 @@ run_stream <- function(obj = NULL,
 
     return(submod.obj$eRegs)
   }
-
-
-  # # Extension of HBCs
-  # expanded.eGRNs <- expand_eGRNs(obj = obj, submod.HBCs = submod.HBCs,
-  #                                peak.assay = peak.assay,
-  #                                distance = expand.dist,
-  #                                expand.cutoff = expand.cutoff)
-  # message ("Discovered ", length(expanded.eGRNs), " enhancer regulons (eRegulons),\n",
-  #          "which were saved to file: ", out.dir, "enhancer_regulons.qsave.\n")
-  # qs::qsave(expanded.eGRNs, paste0(out.dir, "enhancer_regulons.qsave"))
-  #
-  #
-  # # Return
-  # expanded.eGRNs
 
 
   submod.HBCs
@@ -420,13 +436,13 @@ run_stream <- function(obj = NULL,
 create_rna_atac <- function(obj = NULL, ntfs = 5, ngenes = 100,
                             ncells = 100, all.genes = 1000, all.enhs = 3000, all.cells = 1000,
                             org = "hg38", atac.assay = "ATAC", gene.links = 2,
-                            distance = 250000, url.link = "https://figshare.com/ndownloader/files/38644505"
+                            distance = 5e+05, url.link = "https://figshare.com/ndownloader/files/38644505"
                             ) {
 
   # Parameters
   load(url(url.link))
-  ifelse (grepl("^mm", org), sites <- TFBS.list$Mouse, sites <- TFBS.list$Human)
-  message ("There are ", length(unique(sites$TF)), " TFs from the JASPAR database.\n",
+  quiet(ifelse (grepl("^mm", org), sites <- TFBS.list$Mouse, sites <- TFBS.list$Human))
+  message ("There are ", length(unique(sites$TF)), " TFs from the JASPAR 2022 database.\n",
            ntfs, " eRegulons regulated by different TFs will be generated.\n",
            "The Seurat object contains ", nrow(obj[["RNA"]]),
            " genes, ",
@@ -461,11 +477,9 @@ create_rna_atac <- function(obj = NULL, ntfs = 5, ngenes = 100,
 
 
   # Select enhancers bound by the selected TFs
-  # source(paste0(source.dir, "cistrome_tools.R"))
-  cis.links <- link_peaks_to_genes(peak.obj = rownames(obj[[atac.assay]]),
+  cis.links <- suppressWarnings(link_peaks_to_genes(peak.obj = rownames(obj[[atac.assay]]),
                                    gene.obj = Reduce("union", gene.lst), distance = distance,
-                                   org = org)
-  # require(Signac)
+                                   org = org))
   message ("Identified ", length(unique(Signac::GRangesToString(cis.links))), " enhancers within ",
            distance, " from the selected genes.")
   enhs <- Signac::GRangesToString(cis.links)
@@ -475,11 +489,8 @@ create_rna_atac <- function(obj = NULL, ntfs = 5, ngenes = 100,
 
 
   # Convert TF binding sites to enhancers
-  # require(Matrix)
   tf.enhs <- pbmcapply::pbmclapply(tf.sites, function(x) {
     hit.m <- overlap_peak_lst(lst1 = Signac::StringToGRanges(x), lst2 = cis.links)
-    # rownames(hit.m) <- StringToGRanges(x)
-    # colnames(hit.m) <- enhs
     summ <- Matrix::summary(hit.m)
     enhs[unique(summ$j)]
   }, mc.cores = parallel::detectCores())
@@ -565,7 +576,8 @@ create_rna_atac <- function(obj = NULL, ntfs = 5, ngenes = 100,
 
 
   # Generate the simulated matrices
-  simul.rna <- rna.m[c(rownames(hbc.rna), bg.genes), c(colnames(hbc.rna), bg.cells)]
+  simul.rna <- rna.m[Reduce("union", list(rownames(hbc.rna), bg.genes, tf.lst)), 
+                     c(colnames(hbc.rna), bg.cells)]
   simul.atac <- atac.m[c(rownames(hbc.atac), bg.enhs), c(colnames(hbc.atac), bg.cells)]
   rand.rna <- simul.rna[sample(nrow(simul.rna)), sample(ncol(simul.rna))]
   rand.atac <- simul.atac[sample(nrow(simul.atac)), sample(ncol(simul.atac))]
@@ -574,17 +586,13 @@ create_rna_atac <- function(obj = NULL, ntfs = 5, ngenes = 100,
            nrow(rand.atac), " x ", ncol(rand.atac), ".")
 
 
-  # # Obtain Ensembl based annotation based on organism
-  # ensdb <- org_to_DB(org = org)
-
-
   # Create the Seurat object
   simul.obj <- rna_atac_matrices_to_Seurat(rna_counts = rand.rna,
                                            atac_counts = rand.atac,
                                            org = org)
 
 
-  message ("The generated simulated scRNA-seq and scATAC-seq data contains:\n",
+  message ("The simulated scRNA-seq and scATAC-seq data contains:\n",
            "1. Hybrid biclusters (HBCs) in nested list,\n",
            "2. Seurat object containing the scRNA-seq and scATAC-seq data.")
   list(HBCs = hbc.lst, Seurat = simul.obj)
