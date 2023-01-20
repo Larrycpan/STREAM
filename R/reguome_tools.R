@@ -6,11 +6,12 @@
 #'
 find_TFBS <- function(peaks, TFBS.list, org = "hg38") {
 
-  if (grepl("mm", org)) {
-    jaspar.sites <- TFBS.list[["Mouse"]]
-  } else {
-    jaspar.sites <- TFBS.list[["Human"]]
-  }
+  jaspar.sites <- TFBS.list[[org]]
+  # if (grepl("mm", org)) {
+  #   jaspar.sites <- TFBS.list[["Mouse"]]
+  # } else {
+  #   jaspar.sites <- TFBS.list[["Human"]]
+  # }
   overlap <- GenomicAlignments::findOverlaps(query = Signac::StringToGRanges(peaks),
                                              subject = jaspar.sites$peak)
   if (length(overlap) < 1) {
@@ -80,7 +81,7 @@ find_TF_gene <- function(G.list, bound.TFs,
 #' @importFrom dplyr %>%
 #' 
 run_motifmatchr <- function(pfm = NULL, peaks = NULL, 
-                    org = BSgenome.Hsapiens.UCSC.hg38) {
+                    org.gs = BSgenome.Hsapiens.UCSC.hg38) {
   
   motif.ix <- motifmatchr::motifMatches(motifmatchr::matchMotifs(pwms = pfm, 
                                                                  subject = Signac::StringToGRanges(peaks), 

@@ -41,3 +41,11 @@ quiet <- function(x) {
 #' @keywords internal
 #'
 is.not.null <- function(x) !is.null(x) # define a function
+
+
+
+#' Reverse the \code{is.na} function
+#'
+#' @keywords internal
+#'
+is.not.na <- function(x) !is.na(x) # define a function

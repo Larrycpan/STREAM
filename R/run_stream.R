@@ -72,9 +72,9 @@ run_stream <- function(obj = NULL,
                        quantile.cutoff = 4,
                        BlockOverlap = 0.50,
                        Extension = 0.90,
-                       url.link = "https://figshare.com/ndownloader/files/38644505" ,
                        submod.step = 30,
-                       min.eRegs = 100
+                       min.eRegs = 100, 
+                       url.link = "https://figshare.com/ndownloader/files/38794185"
                        ) {
 
   # Set start time
@@ -173,7 +173,19 @@ run_stream <- function(obj = NULL,
 
 
   # Annotate enhancers with TF binding sites
+  # if (org == "mm9") {
+  #   url.link <- "https://figshare.com/ndownloader/files/38794152"
+  # } else if (org == "mm10") {
+  #   url.link <- "https://figshare.com/ndownloader/files/38794155"
+  # } else if (org == "hg19") {
+  #   url.link <- "https://figshare.com/ndownloader/files/38794158"
+  # } else {
+  #   url.link <- "https://figshare.com/ndownloader/files/38794161"
+  # }
+  # invisible(RCurl::curlSetOpt(timeout = 2000))
+  options(timeout = 2000)
   load(url(url.link))
+  message ("Loaded TF binding sites from JASPAR 2022")
   TF.CRE.pairs <- find_TFBS(peaks = rownames(obj[[peak.assay]]),
                             TFBS.list = TFBS.list, org = org)
   qs::qsave(TF.CRE.pairs, paste0(out.dir, "TF_binding_sites_on_enhs.qsave"))
@@ -187,9 +199,17 @@ run_stream <- function(obj = NULL,
   
   # Identify TFs putatively binding enhancers based on the PWMs in JASPAR 2022
   if (ifPutativeTFs) {
+    
+    # Get a list of motif position frequency matrices from the JASPAR database
+    quiet(require(JASPAR2022))
+    pfm <- TFBSTools::getMatrixSet(
+      x = JASPAR2022,
+      opts = list(collection = "CORE", tax_group = 'vertebrates', 
+                  all_versions = FALSE)
+    )
     puta.TF.peak.pairs <- run_motifmatchr(pfm = pfm, 
                                           peaks = rownames(obj[[peak.assay]]), 
-                                          org = org.gs)
+                                          org.gs = org.gs)
     qs::qsave(puta.TF.peak.pairs, paste0(out.dir, "Putative_TF_binding_sites_on_enhs.qsave"))
     puta.bound.TFs <- puta.TF.peak.pairs$puta.bound.TFs
     puta.binding.peaks <- puta.TF.peak.pairs$puta.binding.peaks
@@ -359,6 +379,7 @@ run_stream <- function(obj = NULL,
   }
   
   
+  # Fix HBCs of which no link was discovered
   gene.range <- sapply(HBCs, "[[", "genes") %>% sapply(., length) %>% range
   peak.range <- sapply(HBCs, "[[", "peaks") %>% sapply(., length) %>% range
   cell.range <- sapply(HBCs, "[[", "cells") %>% sapply(., length) %>% range
@@ -436,12 +457,19 @@ run_stream <- function(obj = NULL,
 create_rna_atac <- function(obj = NULL, ntfs = 5, ngenes = 100,
                             ncells = 100, all.genes = 1000, all.enhs = 3000, all.cells = 1000,
                             org = "hg38", atac.assay = "ATAC", gene.links = 2,
-                            distance = 5e+05, url.link = "https://figshare.com/ndownloader/files/38644505"
+                            distance = 5e+05, url.link = "https://figshare.com/ndownloader/files/38794185"
                             ) {
 
   # Parameters
+  message ("Loading TF binding sites from JASPAR ...")
   load(url(url.link))
-  quiet(ifelse (grepl("^mm", org), sites <- TFBS.list$Mouse, sites <- TFBS.list$Human))
+  sites <- TFBS.list[[org]]
+  # sites$TF <- strsplit(sites$TF, split = "::") %>% pbmcapply::pbmclapply(., mc.cores = parallel::detectCores(),
+  #                                                                        function(x) {
+  #   return(tail(x, n = 1))
+  # }) %>% unlist
+  rm(TFBS.list)
+  # quiet(ifelse (grepl("^mm", org), sites <- TFBS.list$Mouse, sites <- TFBS.list$Human))
   message ("There are ", length(unique(sites$TF)), " TFs from the JASPAR 2022 database.\n",
            ntfs, " eRegulons regulated by different TFs will be generated.\n",
            "The Seurat object contains ", nrow(obj[["RNA"]]),
@@ -451,7 +479,9 @@ create_rna_atac <- function(obj = NULL, ntfs = 5, ngenes = 100,
 
   # Select TFs
   set.seed(123)
-  tf.lst <- unique(sites$TF)[sample(seq_along(unique(sites$TF)), size = ntfs)]
+  cand.tfs <- unique(sites$TF)
+  cand.tfs <- cand.tfs[!grepl("::", cand.tfs)]
+  tf.lst <- unique(sites$TF)[sample(seq_along(cand.tfs), size = ntfs)]
 
 
   # Select target genes
@@ -536,7 +566,7 @@ create_rna_atac <- function(obj = NULL, ntfs = 5, ngenes = 100,
     )
 
 
-    xcells <- sample(1:ncol(obj), ncell.lst[[i]], replace = F)
+    xcells <- sample(1:ncol(obj), ncell.lst[[i]], replace = FALSE)
     rna.m[x$genes, xcells] <- 1 + Reduce("rbind", parallel::mclapply(apply(rna.m[x$genes, xcells], 1, max),
                                                            function(x) rep(x, length(xcells)),
                                                            mc.cores = parallel::detectCores()))
@@ -703,10 +733,10 @@ get_cts_en_GRNs <- function(obj = NULL, celltype = NULL,
   names(cts.reg.ids) <- colnames(padj.m)
 
 
-  # Construct cell-type-specific eRegulons
+  # Construct cell-type-specific eGRNs
   cts.reg.ids <- cts.reg.ids[sapply(cts.reg.ids, length) > 0]
   cts.en.grns <- pbmcapply::pbmclapply(names(cts.reg.ids), function(i) {
-    links <- unlist(as(lapply(en.regs[cts.reg.ids[[i]]], function(y){
+    links <- unlist(as(lapply(en.regs[cts.reg.ids[[i]]], function(y) {
       GenomicRanges::mcols(y$links)$TF <- y$TF
       y$links
     }), "GRangesList"))
@@ -714,6 +744,10 @@ get_cts_en_GRNs <- function(obj = NULL, celltype = NULL,
                 cell.type = i,
                 cells = type.cells[[i]]))
   }, mc.cores = parallel::detectCores())
+  names(cts.en.grns) <- names(cts.reg.ids)
+  message ("Identified enhancer gene regulatory networks (eGRNs) for cell types (n = ", 
+           length(cts.reg.ids), ") : ",
+           paste(names(cts.reg.ids), collapse = ", ") )
 
 
   return(cts.en.grns)
@@ -750,16 +784,22 @@ get_cts_en_regs <- function(obj = NULL, peak.assay = "ATAC", de.genes = NULL,
 
   # Differential analyses
   if (is.null(de.genes)) {
+    message ("Need to filter genes based on differential expression.\n", 
+             "Predicting differentially expressed genes (DEGs) ...")
     Seurat::DefaultAssay(obj) <- "RNA"
     Idents(obj) <- stats::setNames(obj@meta.data[, celltype], colnames(obj))
+    future::plan("multiprocess", workers = 4)
     de.genes <- Seurat::FindAllMarkers(obj, only.pos = TRUE,
                                        min.pct = min.pct, logfc.threshold = logfc.threshold)
   }
   de.genes <- de.genes[de.genes$p_val_adj < padj.cutoff,]
   message ("We have ", nrow(de.genes), " differentially expressed genes (DEGs).")
   if (accessibility) {
+    message ("Need to filter genes based on differential accessibility.\n", 
+             "Predicting differentially accessible regions (DARs) ...")
     Seurat::DefaultAssay(obj) <- peak.assay
     Idents(obj) <- stats::setNames(obj@meta.data[, celltype], colnames(obj))
+    future::plan("multiprocess", workers = 4)
     da.peaks <- Seurat::FindAllMarkers(obj, only.pos = TRUE,
                                     min.pct = min.pct, logfc.threshold = logfc.threshold)
     da.peaks <- da.peaks[da.peaks$p_val_adj < padj.cutoff,]
@@ -794,8 +834,9 @@ get_cts_en_regs <- function(obj = NULL, peak.assay = "ATAC", de.genes = NULL,
       return(cts.en.reg)
     })
   }, mc.cores = parallel::detectCores()))
+  names(cts.en.regs) <- NULL
   message ("Identified ", length(cts.en.regs), " cell-type-specific eRegulons.")
-
-
-  # Visualize cell-type-specific eRegulons using dotplot-heatmap plots
+  
+  
+  return(cts.en.regs)
 }

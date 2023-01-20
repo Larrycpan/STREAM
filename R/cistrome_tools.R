@@ -17,7 +17,7 @@ DistanceToTSS <- function(peaks, genes, distance = 200000,
     subject = genes.extended,
     type = 'any',
     select = 'all'
-  ) # find the peaks overlaped with the extended genomic ranges of genes
+  ) # find the peaks overlapped with the extended genomic ranges of genes
   hit_matrix <- Matrix::sparseMatrix(
     i = queryHits(x = overlaps),
     j = subjectHits(x = overlaps),
@@ -73,7 +73,7 @@ CollapseToLongestTranscript <- function(ranges) {
 #'
 #' @keywords internal
 #'
-filter_nearby_genes <- function(obj, distance = 500000, peak.assay = "ATAC") {
+filter_nearby_genes <- function(obj, distance = 1e+6, peak.assay = "ATAC") {
 
   # calculate the nearby genes
   gene.coords <- CollapseToLongestTranscript(ranges = Signac::Annotation(object = obj[[peak.assay]]))

@@ -593,7 +593,7 @@ get_top_genes_peaks <- function(HBC, cand.genes, cand.peaks,
   if (length(cand.peaks) < 1) {
     return(NULL)
   }
-  cand.peaks <- (atac.m[cand.peaks, , drop = F] > 0) %>% rowSums %>%
+  cand.peaks <- (atac.m[cand.peaks, , drop = FALSE] > 0) %>% rowSums %>%
     sort(., decreasing = T) %>% names
   top.peaks.genes <- lapply(1:ncol(end.mat), function(i) {
     unique(end.mat[, i])
@@ -821,18 +821,17 @@ expand_HBC <- function(HBC, cand.genes, cand.peaks, quantile.cutoff = 4,
                                          cand.genes = cand.genes,
                                          G = G, rna.m = rna.m, atac.m = atac.m,
                                          top.ngenes = top.ngenes)
-  if (is.null(top.genes.peaks)) {
-    return(HBC)
+  if (is.not.null(top.genes.peaks)) {
+    HBC <- expand_core(HBC = HBC, top.genes.peaks = top.genes.peaks,
+                       rna.m = rna.m, atac.m = atac.m, closure = closure,
+                       G = G, KL = KL, Q = Q, P = P, ego.order = ego.order,
+                       min.cells = min.cells) # expand the core part of the HBC
+    HBC <- expand_fuzzy(HBC = HBC, G = G, cand.genes = cand.genes, cand.peaks = cand.peaks,
+                        m = rna.dis > 0, mm = atac.dis, rna.m = rna.m, atac.m = atac.m,
+                        g.cutoff = c.cutoff, KL = KL, closure = closure,
+                        ego.order = ego.order,
+                        P = P, Q = Q)
   }
-  HBC <- expand_core(HBC = HBC, top.genes.peaks = top.genes.peaks,
-                     rna.m = rna.m, atac.m = atac.m, closure = closure,
-                     G = G, KL = KL, Q = Q, P = P, ego.order = ego.order,
-                     min.cells = min.cells) # expand the core part of the HBC
-  HBC <- expand_fuzzy(HBC = HBC, G = G, cand.genes = cand.genes, cand.peaks = cand.peaks,
-                      m = rna.dis > 0, mm = atac.dis, rna.m = rna.m, atac.m = atac.m,
-                      g.cutoff = c.cutoff, KL = KL, closure = closure,
-                      ego.order = ego.order,
-                      P = P, Q = Q)
   HBC <- expand_cells(HBC = HBC, m = rna.dis > 0, mm = atac.dis,
                       quantile.cutoff = quantile.cutoff)
   HBC.ends <- ends(G, E(G)[HBC$peaks %--% HBC$genes])
@@ -844,7 +843,7 @@ expand_HBC <- function(HBC, cand.genes, cand.peaks, quantile.cutoff = 4,
   HBC$weight <- sum(atac.dis[HBC$peaks, HBC$cells]) / sum(rna.dis[HBC$genes, HBC$cells])
 
 
-  HBC
+  return(HBC)
 }
 
 
@@ -1513,7 +1512,7 @@ rna_atac_matrices_to_Seurat <- function(rna_counts = NULL, atac_counts = NULL,
   grange.use <- BSgenome::seqnames(grange.counts) %in% GenomeInfoDb::standardChromosomes(grange.counts)
   atac_counts <- atac_counts[as.vector(grange.use), ]
   annotations <- Signac::GetGRangesFromEnsDb(ensdb = org_to_DB(org = org))
-  ensembledb::seqlevelsStyle(annotations) <- 'UCSC'
+  ensembldb::seqlevelsStyle(annotations) <- 'UCSC'
   GenomeInfoDb::genome(annotations) <- org
 
 
@@ -1528,7 +1527,7 @@ rna_atac_matrices_to_Seurat <- function(rna_counts = NULL, atac_counts = NULL,
       annotation = annotations
     )
   } else {
-    chrom_assay <- GenomeInfoDb::CreateChromatinAssay(
+    chrom_assay <- Signac::CreateChromatinAssay(
       counts = atac_counts,
       sep = sep,
       genome = org,
