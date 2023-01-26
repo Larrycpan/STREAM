@@ -1,12 +1,16 @@
 #' 
 #' @keywords internal
-#' @import RColorBrewer
 #' 
 get_random_colours <- function(n = 10, category = "qual") {
   
   qual_col_pals <- brewer.pal.info[brewer.pal.info$category == category,]
-  return( sample(unlist(mapply(brewer.pal, qual_col_pals$maxcolors, 
-                             rownames(qual_col_pals))), size = n) )
+  all.colours <- unlist(mapply(brewer.pal, qual_col_pals$maxcolors, 
+                               rownames(qual_col_pals)))
+  if (n > length(all.colours) ) {
+    return( sample(all.colours, size = n, replace = TRUE) )
+  } else {
+    return( sample(all.colours, size = n, replace = FALSE) )
+  }
 }
 
 
@@ -374,7 +378,8 @@ df_to_igraph_net <- function(df = NULL, color.df = NULL, vertex.frame.width = 0.
                              width = 4000, height = 4000, res = 300,
                              layout = "fr",
                              vertex.label.family = "Arial", vertex.label.color = "black", 
-                             vertex.size = NULL, tf.cex = 6, enh.cex = 1, gene.cex = 2) {
+                             vertex.size = NULL, tf.cex = 6, enh.cex = 1, gene.cex = 2, 
+                             max.width = 5 ) {
   
   # Parameters
   message ("The data frame contains ", length(unique(df$TF)), 
@@ -390,10 +395,14 @@ df_to_igraph_net <- function(df = NULL, color.df = NULL, vertex.frame.width = 0.
   }
   
   
-  TR.links <- distinct(df[, 1:2]) %>% dplyr::rename(., c(source = TF, target = enhancer))
-  RG.links <- distinct(df[, 2:3]) %>% dplyr::rename(., c(source = enhancer, target = gene))
+  TR.links <- distinct(df[, c(1:2, 4)]) %>% dplyr::rename(., c(source = TF, target = enhancer, 
+                                                               weight = T2R))
+  RG.links <- distinct(df[, c(2:3, 5)]) %>% dplyr::rename(., c(source = enhancer, target = gene, 
+                                                               weight = R2G))
   links <- rbind(TR.links, RG.links)
-  nodes <- apply(df, 2, unique) %>% unlist %>% unique
+  links$weight <- max.width * (links$weight - min(links$weight) + 1e-04 ) / 
+    (max(links$weight) - min(links$weight) + 1e-04)
+  nodes <- apply(df[, 1:3], 2, unique) %>% unlist %>% unique
   message ("There are ", nrow(links), " linkages and ", length(nodes), " nodes.\n")
   
   
@@ -404,25 +413,26 @@ df_to_igraph_net <- function(df = NULL, color.df = NULL, vertex.frame.width = 0.
     if (length(vertex.color) != 1 && !is.null(v)) {
       vertex.color <- vertex.color[v]
     }
-    vertex.size <- 1/30 * params("vertex", "size")
+    vertex.size <- 1 / 30 * params("vertex", "size")
     if (length(vertex.size) != 1 && !is.null(v)) {
       vertex.size <- vertex.size[v]
     }
     
-    plotrix::draw.ellipse(x=coords[,1], y=coords[,2],
-                 a = vertex.size, b=vertex.size / 2, col=vertex.color)
+    plotrix::draw.ellipse(x = coords[,1], y = coords[,2],
+                 a = vertex.size, b = vertex.size / 2, col = vertex.color)
   }
   
   
   # Register the shape with igraph
-  igraph::add_shape("ellipse", clip=shapes("circle")$clip,
-            plot=myellipse)
+  igraph::add_shape("ellipse", clip = shapes("circle")$clip,
+            plot = myellipse)
   
   
   # Colors
   # require(igraph)
   # require(rTRM)
-  network <- graph_from_data_frame(d = links, vertices = nodes, directed = F)
+  network <- graph_from_data_frame(d = links, vertices = nodes, directed = FALSE )
+  # E(network)$weight <- links$weight
   tf.color <- color.df[unique(df$TF)]
   tf.shape <- rep(tf.shape, length(unique(df$TF)))
   enh.shape <- rep(enh.shape, length(unique(df$enhancer)))
@@ -461,6 +471,7 @@ df_to_igraph_net <- function(df = NULL, color.df = NULL, vertex.frame.width = 0.
     plot(network, vertex.color = vertex.color, vertex.frame.width = vertex.frame.width, 
          vertex.frame.color = vertex.frame.color, edge.curved = edge.curved, edge.color = edge.color, 
          vertex.label.family = vertex.label.family, vertex.label.color = vertex.label.color, 
+         # edge.width = E(network)$weight,
          vertex.shape = vertex.shape, vertex.size = vertex.size, vertex.label = vertex.label,
          layout = rTRM::layout.concentric(network, concentric = list(names(tf.color), 
                                                                      names(enh.color), 
@@ -468,13 +479,66 @@ df_to_igraph_net <- function(df = NULL, color.df = NULL, vertex.frame.width = 0.
   } else if (layout == "fr") {
     plot(network, vertex.color = vertex.color, vertex.frame.width = vertex.frame.width, 
          vertex.frame.color = vertex.frame.color, edge.curved = edge.curved, edge.color = edge.color, 
+         # edge.width = E(network)$weight,
          vertex.label.family = vertex.label.family, vertex.label.color = vertex.label.color, 
          vertex.shape = vertex.shape, vertex.size = vertex.size, vertex.label = vertex.label,
-         layout = igraph::layout_with_fr(network, 
-                                         minx = rep(-Inf, igraph::vcount(network)), 
-                                         maxx = rep(Inf, igraph::vcount(network)), 
-                                         miny = rep(-Inf, igraph::vcount(network)), 
-                                         maxy = rep(Inf, igraph::vcount(network))) )
+         # layout = igraph::layout_with_fr
+         layout = igraph::layout_with_fr(network,
+                                         minx = rep(-Inf, igraph::vcount(network)),
+                                         maxx = rep(Inf, igraph::vcount(network)),
+                                         miny = rep(-Inf, igraph::vcount(network)),
+                                         maxy = rep(Inf, igraph::vcount(network)) )
+    )
+  } else if (layout == "lgl") {
+    plot(network, vertex.color = vertex.color, vertex.frame.width = vertex.frame.width, 
+         vertex.frame.color = vertex.frame.color, edge.curved = edge.curved, edge.color = edge.color, 
+         # edge.width = E(network)$weight,
+         vertex.label.family = vertex.label.family, vertex.label.color = vertex.label.color, 
+         vertex.shape = vertex.shape, vertex.size = vertex.size, vertex.label = vertex.label,
+         layout = igraph::layout_with_lgl
+    )
+  } else if (layout == "mds") {
+    plot(network, vertex.color = vertex.color, vertex.frame.width = vertex.frame.width, 
+         vertex.frame.color = vertex.frame.color, edge.curved = edge.curved, edge.color = edge.color, 
+         vertex.label.family = vertex.label.family, vertex.label.color = vertex.label.color, 
+         vertex.shape = vertex.shape, vertex.size = vertex.size, vertex.label = vertex.label,
+         layout = igraph::layout_with_mds )
+  } else if (layout == "kk") {
+    plot(network, vertex.color = vertex.color, vertex.frame.width = vertex.frame.width, 
+         vertex.frame.color = vertex.frame.color, edge.curved = edge.curved, edge.color = edge.color, 
+         vertex.label.family = vertex.label.family, vertex.label.color = vertex.label.color, 
+         vertex.shape = vertex.shape, vertex.size = vertex.size, vertex.label = vertex.label,
+         layout = igraph::layout_with_kk )
+  } else if (layout == "dh") {
+    plot(network, vertex.color = vertex.color, vertex.frame.width = vertex.frame.width, 
+         vertex.frame.color = vertex.frame.color, edge.curved = edge.curved, edge.color = edge.color, 
+         vertex.label.family = vertex.label.family, vertex.label.color = vertex.label.color, 
+         vertex.shape = vertex.shape, vertex.size = vertex.size, vertex.label = vertex.label,
+         layout = igraph::layout_with_dh )
+  } else if (layout == "nicely") {
+    plot(network, vertex.color = vertex.color, vertex.frame.width = vertex.frame.width, 
+         vertex.frame.color = vertex.frame.color, edge.curved = edge.curved, edge.color = edge.color, 
+         vertex.label.family = vertex.label.family, vertex.label.color = vertex.label.color, 
+         vertex.shape = vertex.shape, vertex.size = vertex.size, vertex.label = vertex.label,
+         layout = igraph::layout_nicely )
+  } else if (layout == "drl") {
+    plot(network, vertex.color = vertex.color, vertex.frame.width = vertex.frame.width, 
+         vertex.frame.color = vertex.frame.color, edge.curved = edge.curved, edge.color = edge.color, 
+         vertex.label.family = vertex.label.family, vertex.label.color = vertex.label.color, 
+         vertex.shape = vertex.shape, vertex.size = vertex.size, vertex.label = vertex.label,
+         layout = igraph::layout_with_drl )
+  } else if (layout == "gem") {
+    plot(network, vertex.color = vertex.color, vertex.frame.width = vertex.frame.width, 
+         vertex.frame.color = vertex.frame.color, edge.curved = edge.curved, edge.color = edge.color, 
+         vertex.label.family = vertex.label.family, vertex.label.color = vertex.label.color, 
+         vertex.shape = vertex.shape, vertex.size = vertex.size, vertex.label = vertex.label,
+         layout = igraph::layout_with_gem )
+  } else if (layout == "graphopt") {
+    plot(network, vertex.color = vertex.color, vertex.frame.width = vertex.frame.width, 
+         vertex.frame.color = vertex.frame.color, edge.curved = edge.curved, edge.color = edge.color, 
+         vertex.label.family = vertex.label.family, vertex.label.color = vertex.label.color, 
+         vertex.shape = vertex.shape, vertex.size = vertex.size, vertex.label = vertex.label,
+         layout = igraph::layout_with_graphopt )
   }
 
   dev.off()
@@ -498,9 +562,14 @@ df_to_igraph_net <- function(df = NULL, color.df = NULL, vertex.frame.width = 0.
 #' @param title The title of the eGRN to be plotted, "temp" by default
 #' @param path The path to save the image file, "./" by default
 #' @param format The format of the image file, ".png" by default
+#' @param n.TFs The maximum number of top-ranked TFs to generate eGRN plot, 10 by default
+#' @param TFs The list of TFs for plotting, NULL by default
+#' @param layout The layout for plotting networks, "fr" by default
 #' 
 plot_eGRN <- function(en.grn = NULL, obj = NULL, peak.assay = "ATAC", n.links = 20, 
-                      title = "temp", path = "./", format = ".png") {
+                      title = "temp", path = "./", format = ".png", n.TFs = 15, 
+                      layout = "fr", max.links = 5000,
+                      TFs = NULL) {
   
   # Parameters
   message (length(en.grn$links), " TF-enhancer-gene relations were input, \n", 
@@ -514,6 +583,17 @@ plot_eGRN <- function(en.grn = NULL, obj = NULL, peak.assay = "ATAC", n.links = 
   # Filtering TFs, enhancers, and genes
   ranges <- en.grn$links
   ranges <- ranges[ranges$TF %in% rownames(obj[["RNA"]])]
+  if (!is.null(TFs)) {
+    ranges <- ranges[ranges$TF %in% TFs]
+    if (length(ranges) < 1) {
+      message ("There is no TF-enhancer-gene relation in the cell-type-specific eGRN!")
+      return(NULL)
+    }
+    n.TFs <- Inf
+    message ("Only showcase the eGRN composed of the ", 
+             length(TFs), " TFs provided by the user.\n", 
+             "Removed the restriction of the maximum number of TF-enhancer-gene relations for each TF.")
+  }
   all.genes <- union(unique(ranges$TF), 
                      unique(ranges$gene) )
   all.enhs <- unique(Signac::GRangesToString(ranges))
@@ -523,8 +603,13 @@ plot_eGRN <- function(en.grn = NULL, obj = NULL, peak.assay = "ATAC", n.links = 
            "leading to ", length(ranges), " relations.")
   
   
- # Filter relations for each TF
-  filtered.ranges <- do.call("c", pbmcapply::pbmclapply(unique(ranges$TF), 
+  # Filter relations for each TF
+  if (length(unique(en.grn$links$TF)) + length(all.genes) + length(all.enhs) > max.links) {
+    n.links <- round(max.links / length(unique(en.grn$links$TF)) )
+    message ("Identifying the top-ranked ", n.links,
+             " relations for each TF.")
+  }
+  ranges.lst <- pbmcapply::pbmclapply(unique(ranges$TF), 
                                                         mc.cores = parallel::detectCores(), 
                         function(x) {
                           x.ranges <- ranges[ranges$TF == x]
@@ -535,19 +620,190 @@ plot_eGRN <- function(en.grn = NULL, obj = NULL, peak.assay = "ATAC", n.links = 
                               which(atac.m[str.lst[i],] > 0)
                             ) %>% length
                           }) %>% order(., decreasing = TRUE) %>% head(., n = n.links)]
-                        }) )
+                        })
+  filtered.ranges <- do.call("c", ranges.lst[sapply(ranges.lst, length) %>% 
+                                               order(., decreasing = TRUE) %>% 
+                                               head(., n = n.TFs)] )
   message ("Filtered GRanges to retain top-ranked ", length(filtered.ranges), 
            " TF-enhancer-gene relations.")
   
   
   # Plotting
+  if (!dir.exists(path)) {
+    dir.create(path)
+    message("Created directory: ", path)
+  }
+  message ("Plotting the eGRN image to file: ", 
+           path, title, format, " ...")
+  df <- data.frame(
+    TF = filtered.ranges$TF,
+    enhancer = Signac::GRangesToString(filtered.ranges), 
+    gene = filtered.ranges$gene
+  )
+  df <- cbind(df, 
+              T2R = pbmcapply::pbmclapply(1:nrow(df), 
+                                          mc.cores = parallel::detectCores(), 
+                                          function(i) {
+                                            length(which(rna.m[df$TF[i], ] > 0 & 
+                                                           atac.m[df$enhancer[i], ] > 0))
+                                          }) %>% unlist, 
+              R2G = pbmcapply::pbmclapply(1:nrow(df), 
+                                          mc.cores = parallel::detectCores(), 
+                                          function(i) {
+                                            length(which(rna.m[df$gene[i], ] > 0 & 
+                                                           atac.m[df$enhancer[i], ] > 0))
+                                          }) %>% unlist)
   df_to_igraph_net(
-    df = data.frame(
-      TF = filtered.ranges$TF,
-      enhancer = Signac::GRangesToString(filtered.ranges), 
-      gene = filtered.ranges$gene
-    ), 
+    df = df, 
     title = title, path = path, 
-    format = format
+    format = format, 
+    layout = layout
     )
 }
+
+
+
+#' Prepare TF-enhancer-gene relations to generate coverage plots
+#' 
+#' @export
+#' @rdname prepare_coverage_plot
+#' 
+#' @param object A \code{Seurat} object
+#' @param links A list of \code{GRanges} object to save the TF-enhancer-gene relations
+#' @param peak.assay The scATAC-seq assay
+#' @param highlight.width The width of the regions to highlight, i.e., TF binding sites
+#' @param highlight.colors The colors of regions to highlight
+#' 
+prepare_coverage_plot <- function(object = NULL, links = NULL, 
+                                  highlight.colors = NULL,
+                      peak.assay = "ATAC", highlight.width = 500) {
+  
+  # Identify gene locations
+  gene.coords <- CollapseToLongestTranscript(object[[peak.assay]]@annotation[object[[peak.assay]]@annotation$gene_name %in% unique(links$gene)])
+  link.tss <- do.call("c", lapply(seq_along(links), function(x) {
+    gene.coords[which(gene.coords$gene_name == links[x]$gene)]
+  }))
+  link.tss <- GenomicRanges::resize(link.tss, width = 1, fix = "start")
+  message ("Identified the locations of genes.")
+  
+  
+  # Determine the region
+  intervals <- IRanges::punion(GenomicRanges::resize(links, width = 1, 
+                                                     fix = "center"),
+                               link.tss, fill.gap = TRUE, ignore.strand = TRUE)
+  GenomicRanges::mcols(intervals)$gene <- link.tss$gene_name
+  GenomicRanges::mcols(intervals)$peak <- Signac::GRangesToString(links)
+  region <- paste0(
+    unique(GenomeInfoDb::seqnames(intervals)), 
+    "-",
+    min(GenomicRanges::start(intervals)), 
+    "-", 
+    max(GenomicRanges::end(intervals))
+  )
+  message ("Determined the region to generate coverage plot.")
+  
+  
+  # Calculate the regions to highlight
+  region.highlight <- GenomicRanges::resize(Signac::StringToGRanges(unique(intervals$peak) ), 
+                                             width = highlight.width, 
+                                             fix = "center")
+  if (is.null(highlight.colors)) {
+    highlight.colors <- suppressWarnings(RColorBrewer::brewer.pal(length(unique(intervals$peak)), "Set1"))
+  }
+  highlight.colors <- head(highlight.colors, n = length(unique(intervals$peak) ))
+  GenomicRanges::mcols(region.highlight)$color <- highlight.colors
+  message ("Calculated the regions to highlight.")
+  
+  
+  # Compute the scores of enhancer-gene relations
+  rna.m <- Seurat::GetAssayData(object = object, assay = "RNA", slot = "counts") > 0
+  atac.m <- Seurat::GetAssayData(object = object, assay = peak.assay, slot = "counts") > 0
+  GenomicRanges::mcols(intervals)$score <- as.numeric(pbmcapply::pbmclapply(seq_along(intervals), 
+                                                                 mc.cores = parallel::detectCores(), 
+                                                                 function(x) {
+                                                                   length(which(rna.m[intervals[x]$gene,] & 
+                                                                     atac.m[intervals[x]$peak,] ) ) / 
+                                                                     length(which(rna.m[intervals[x]$gene,] ) )
+                                                                 }) )
+  Signac::Links(object) <- intervals
+  message ("Computed the score of enhancer-gene relations across all cells.")
+  
+  
+  return(list(
+    object = object,
+    region = region,
+    region.highlight = region.highlight
+  ))
+}
+
+
+
+#' Generate coverage plot of an interval across different cell types
+#' 
+#' @export
+#' @rdname get_coverage_plot
+#' @import ggplot2
+#' 
+#' @param object A \code{Seurat} object
+#' @param region A set of genomic coordinates to show. Can be a \code{GRanges} object, 
+#' a string encoding a genomic position, a gene name, or a vector of strings describing 
+#' the genomic coordinates or gene names to plot. If a gene name is supplied, annotations 
+#' must be present in the assay.
+#' @param features A vector of features present in another assay to plot alongside 
+#' accessibility tracks (for example, gene names).
+#' @param links Display links
+#' @param ranges.group.by Grouping variable to color \code{ranges} by. Must be a variable present 
+#' in the metadata stored in the \code{ranges} genomic ranges. If NULL, do not color by any variable.
+#' @param peaks Display peaks
+#' @param bigwig List of bigWig file paths to plot data from. Files can be remotely hosted. 
+#' The name of each element in the list will determine the y-axis label given to the track.
+#' @param region.highlight Region to highlight on the plot. Should be a \code{GRanges} object 
+#' containing the coordinates to highlight. By default, regions will be highlighted in grey. 
+#' To change the color of the highlighting, include a metadata column in the 
+#' GRanges object named "color" containing the color to use for each region.
+#' @param colors A list of colors to fill different genomic ranges
+#' @param size The font size
+#' @param idents Which identities to include in the plot. Default is all identities.
+#' @param extend.upstream Number of bases to extend the region upstream.
+#' @param extend.downstream Number of bases to extend the region downstream.
+get_coverage_plot <- function(object = NULL, region = NULL, 
+                              features = NULL, links = FALSE, 
+                              ranges.group.by = "seurat_cluster", peaks = FALSE, 
+                              bigwig = NULL, region.highlight = NULL, 
+                              idents = NULL, extend.upstream = 0, 
+                              extend.downstream = 0,
+                              colors = NULL, size = 10) {
+  
+  # Plotting
+  # if (is.null(colors)) {
+  #   colors <- setNames(RColorBrewer::brewer.pal(length(unique(object@meta.data[, ranges.group.by])), 
+  #                                                       "Set1"), 
+  #                      unique(object@meta.data[, ranges.group.by]))
+  # }
+  Seurat::DefaultAssay(object) <- peak.assay
+  Seurat::Idents(object) <- setNames(object@meta.data[, ranges.group.by], 
+                                     colnames(object))
+  p <- suppressWarnings( Signac::CoveragePlot(object = object, region = region, features = features, 
+                    ranges.group.by = ranges.group.by, peaks = peaks, links = links,
+                    idents = idents,
+                    bigwig = bigwig, region.highlight = region.highlight
+  ) )
+  if (is.not.null(colors)) {
+    p <- p & 
+      scale_fill_manual(values = colors)
+  }
+  # p <- p &  
+  #   theme(
+  #     text  = element_text(colour = "black", family = "Arial", size = size),
+  #     strip.text.y = element_text(colour = "black", family = "Arial", size = size),
+  #     axis.text.x = element_text(colour = "black", family = "Arial", size = size),
+  #     axis.text.y = element_text(colour = "black", family = "Arial", size = size),
+  #     axis.line.y = element_line(colour = "black"),
+  #     panel.border = element_blank(),  
+  #     panel.background = element_blank(), 
+  #     legend.position = "none",
+  #     axis.line.x = element_line(colour = "black"))
+  
+  
+  return(p)
+  }

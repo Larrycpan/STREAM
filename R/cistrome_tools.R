@@ -3,7 +3,7 @@
 #'
 #' @keywords internal
 #'
-DistanceToTSS <- function(peaks, genes, distance = 200000,
+DistanceToTSS <- function(peaks, genes, distance = 2e+05,
                           sep = c("-", "-")) {
 
   tss <- GenomicRanges::resize(x = genes, width = 1, fix = 'start') # find the TSS location
@@ -234,7 +234,7 @@ LinksToGRanges <- function(linkmat, gene.coords, sep = c("-", "-")) {
 #'
 load_database <- function(org = "hg38") {
 
-  ifelse (grepl("^mm", org), enddb <- "org.Mm.eg.db",
+  ifelse (grepl("^mm", org) | org == "mouse", enddb <- "org.Mm.eg.db",
           enddb <- "org.Hs.eg.db")
 
 
@@ -264,7 +264,7 @@ ensembl_to_symbol <- function(ensembl.ll, org = org) {
 
 
   # Map Ensembl IDs to gene symbols
-  require(org.db, character.only = T)
+  quiet(require(org.db, character.only = T))
   symbol.ll <- AnnotationDbi::mapIds(x = get(org.db),
                       keys = key.ll,
                       column = "SYMBOL",
