@@ -635,3 +635,53 @@ overlap_peak_lst <- function(lst1, lst2) {
     dims = c(length(x = lst1), length(x = lst2))
   ) # build a sparse matrix to record the overlaps between peaks and extended genomic ranges of genes
 }
+
+
+
+#' Calculate the p-values of overlaps between two \code{GRanges} objects
+#' 
+#' @export
+#' @rdname intersect_peaks
+#' 
+#' @param x The first \code{GRanges} object or \code{data.frame}
+#' @param y The first \code{GRanges} object or \code{data.frame}
+#' @param n.times The number of times of permutation, 1000 by default
+#' @param alternative The direction of alternative hypot6hesis, "greater" by default
+#' @return Return a numeric p-value
+intersect_peaks <- function(x, y, n.times = 100, alternative = "greater") {
+
+  # Calculate intersections
+  message ("Perform significance test between two GRange objects composed of ", 
+           length(x), " and ", length(y), " peaks.")
+  regioneR::overlapPermTest(A = x, B = y, ntimes = n.times, alternative = alternative)
+}
+
+
+
+#' Calculate the p-values of overlaps between two lists of \code{GRanges} objects
+#' 
+#' @export
+#' @rdname intersect_peaks_in_batch
+#' 
+#' @param x.ll The first list of \code{GRanges} objects
+#' @param y.ll The first list of \code{GRanges} objects
+#' @param n.times The number of times of permutation, 1000 by default
+#' @return Returns a \code{data.frame} composed of the IDs of significantly overlapped 
+#' \code{GRanges} objects and p-values
+intersect_peaks_in_batch <- function(x.ll, y.ll, n.times = 100) {
+
+  message ("Perform significance test between two lists composed of ", 
+           length(x.ll), " and ", length(y.ll), " GRange objects.")
+  pval.df <- data.frame(numeric(), numeric(), 
+                        numeric())
+  for (i in seq_along(x.ll)) {
+    for (j in seq_along(y.ll)) {
+      pval <- suppressMessages(intersect_peaks(x = x.ll[[i]], y = y.ll[[j]], n.times = n.times))
+      pval.df <- rbind(pval.df, c(i, j, pval))
+    }
+  }
+  message ("Finished performing enrichment analysis between two lists.\n", 
+           nrow(pval.df), " pairs of peak lists have been compared.")
+  colnames(pval.df) <- c("query", "subject", "pval")
+  return(pval.df)
+}

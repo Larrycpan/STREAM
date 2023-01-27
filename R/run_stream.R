@@ -37,6 +37,7 @@
 #' @param submod.step The step size of the number of HBCs for submodular optimization, 30 by default
 #' @param filter_peaks_for_cicero Whether filter the peaks based on the Signac results before running Cicero, 
 #' FALSE by default
+#' @param candidate.TFs The list of candidate TFs used to identify eRegulons and eGRNs, NULL by default
 #'
 #' @rdname run_stream
 #' @concept run_stream
@@ -48,6 +49,7 @@
 #' @return When running on a \code{Seurat} object,
 #' returns a list of enhancer regulons, i.e., eRegulons, saved in a nested list
 run_stream <- function(obj = NULL,
+                       candidate.TFs = NULL,
                        peak.assay = "ATAC",
                        var.genes = 3000,
                        top.peaks = 3000,
@@ -187,7 +189,8 @@ run_stream <- function(obj = NULL,
   load(url(url.link))
   message ("Loaded TF binding sites from JASPAR 2022")
   TF.CRE.pairs <- find_TFBS(peaks = rownames(obj[[peak.assay]]),
-                            TFBS.list = TFBS.list, org = org)
+                            TFBS.list = TFBS.list, org = org, 
+                            candidate.TFs = candidate.TFs)
   qs::qsave(TF.CRE.pairs, paste0(out.dir, "TF_binding_sites_on_enhs.qsave"))
   bound.TFs <- TF.CRE.pairs$CRE
   binding.CREs <- TF.CRE.pairs$TF
@@ -197,7 +200,7 @@ run_stream <- function(obj = NULL,
            "which were saved to file: ", out.dir, "TF_binding_sites_on_enhs.qsave.")
   
   
-  # Identify TFs putatively binding enhancers based on the PWMs in JASPAR 2022
+  # Identify TFs tentatively binding enhancers based on the PWMs in JASPAR 2022
   if (ifPutativeTFs) {
     
     # Get a list of motif position frequency matrices from the JASPAR database
@@ -209,7 +212,8 @@ run_stream <- function(obj = NULL,
     )
     puta.TF.peak.pairs <- run_motifmatchr(pfm = pfm, 
                                           peaks = rownames(obj[[peak.assay]]), 
-                                          org.gs = org.gs)
+                                          org.gs = org.gs, 
+                                          candidate.TFs = candidate.TFs)
     qs::qsave(puta.TF.peak.pairs, paste0(out.dir, "Putative_TF_binding_sites_on_enhs.qsave"))
     puta.bound.TFs <- puta.TF.peak.pairs$puta.bound.TFs
     puta.binding.peaks <- puta.TF.peak.pairs$puta.binding.peaks

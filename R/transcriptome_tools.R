@@ -234,3 +234,67 @@ call_LTMG <- function(obj) {
 #     max(mat[gene.lst[[i]], cell.lst[[i]]]) >= max.signal
 #   }, mc.cores = parallel::detectCores()) %>% unlist
 # }
+
+
+
+#' Perform enrichment analysis for eRegulon genes against gene ontology (GO) terms 
+#' and KEGG pathways
+#'
+#' @export
+#' @rdname enrich_genes
+#' 
+#' @param regs The list of enhancer regulons (eRegulons) or cell-type-specific eRegulons
+#' @param dbs The list of databases to run enrichment analysis, c("GO", "KEGG") by default
+#' @param org The organism, "human" by default
+enrich_genes <- function(regs = NULL, dbs = c("GO", "KEGG"), 
+                         org = "human" ) {
+  
+  # Determine databases
+  genes.ll <- sapply(regs, "[[", "genes")
+  databases <- c()
+  if ("GO" %in% dbs) {
+    message ("Loading GO databases ...")
+    databases <- c("GO_Molecular_Function_2018",
+                   "GO_Cellular_Component_2018",
+                   "GO_Biological_Process_2018")
+  }
+  if ("KEGG" %in% dbs) {
+    if (org == "mouse") {
+      databases <- c(databases, "KEGG_2019_Mouse")
+    } else {
+      databases <- c(databases, "KEGG_2019_Human")
+    }
+    message ("Loading KEGG database of ", org, " ...")
+  }
+  
+  
+  # Run enrichment analyses
+  message ("Running enrichment analyses for ", length(genes.ll), " gene lists ...")
+  quiet(require(enrichR))
+  enriched <- pbmcapply::pbmclapply(genes.ll, 
+                                    mc.cores = 4, 
+                                    function(x) {
+    enrichr(genes = x, databases = databases)
+  })
+  names(enriched) <- seq_along(genes.ll)
+  
+  
+  # Parse the results
+  message ("Merging enrichment analyses results ...")
+  processed <- pbmcapply::pbmclapply(databases, 
+                                     mc.cores = parallel::detectCores(), 
+                                     function(x) {
+    message ("Preparing enrichment analysis results for ", x, " ...")
+    x.prosessed <- Reduce("rbind", lapply(seq_along(enriched), function(i) {
+      # if (nrow(enriched[[i]][[x]]) < 1) {
+      #   return(NULL)
+      # }
+      cbind(Id = rep(names(enriched)[i], nrow(enriched[[i]][[x]])), enriched[[i]][[x]])
+    }) )
+  })
+  names(processed) <- databases
+  message ("There are ", paste(sapply(processed, nrow), collapse = ", "), 
+           " terms/pathways for ", paste(names(processed), collapse = ", "), 
+           ".")
+  return(processed)
+}

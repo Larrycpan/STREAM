@@ -4,14 +4,17 @@
 #'
 #' @keywords internal
 #'
-find_TFBS <- function(peaks, TFBS.list, org = "hg38") {
+find_TFBS <- function(peaks, TFBS.list, org = "hg38", candidate.TFs = NULL) {
 
   jaspar.sites <- TFBS.list[[org]]
-  # if (grepl("mm", org)) {
-  #   jaspar.sites <- TFBS.list[["Mouse"]]
-  # } else {
-  #   jaspar.sites <- TFBS.list[["Human"]]
-  # }
+  if (is.not.null(candidate.TFs)) {
+    ids <- jaspar.sites$TF %in% candidate.TFs
+    jaspar.sites <- list(
+      TF = jaspar.sites$TF[ids], 
+      peak = jaspar.sites$peak[ids]
+    )
+    message ("Searching annotated TF binding sitesin JASPAR using the TF list provided by the user ...")
+  }
   overlap <- GenomicAlignments::findOverlaps(query = Signac::StringToGRanges(peaks),
                                              subject = jaspar.sites$peak)
   if (length(overlap) < 1) {
@@ -81,7 +84,8 @@ find_TF_gene <- function(G.list, bound.TFs,
 #' @importFrom dplyr %>%
 #' 
 run_motifmatchr <- function(pfm = NULL, peaks = NULL, 
-                    org.gs = BSgenome.Hsapiens.UCSC.hg38) {
+                    org.gs = BSgenome.Hsapiens.UCSC.hg38, 
+                    candidate.TFs = NULL) {
   
   motif.ix <- motifmatchr::motifMatches(motifmatchr::matchMotifs(pwms = pfm, 
                                                                  subject = Signac::StringToGRanges(peaks), 
@@ -93,6 +97,11 @@ run_motifmatchr <- function(pfm = NULL, peaks = NULL,
   peak.TF.pairs <- data.frame(peaks[motif.ix[, 1]], 
                               TF.lst[motif.ix[, 2]])
   colnames(peak.TF.pairs) <- c("peak", "TF")
+  if (is.not.null(candidate.TFs)) {
+    peak.TF.pairs <- peak.TF.pairs[peak.TF.pairs$TF %in% candidate.TFs,, drop = FALSE]
+    message ("Identify putative TF binding sites via motif enrichment analysis for the TF list", 
+             " provided by the user ...")
+  }
   peak.TFs <- split(peak.TF.pairs, peak.TF.pairs$peak) %>% sapply(., "[[", "TF")
   TF.peaks <- split(peak.TF.pairs, peak.TF.pairs$TF) %>% sapply(., "[[", "peak")
   return(list(

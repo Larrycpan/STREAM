@@ -563,3 +563,93 @@ link_peaks <- function(object, peak.assay = "ATAC", expression.assay = "RNA",
   Signac::Links(object = object[[peak.assay]]) <- links
   return(object)
 }
+
+
+
+#' Calculate the precision, recall, and f-scores of the overlaps between 
+#' two \code{GRanges} objects indicating enhancer-gene relations
+#' 
+#' @export
+#' @rdname intersect_links
+#' @param x The first \code{GRanges} object saving enhancer-gene relations
+#' @param y The second \code{GRanges} object saving enhancer-gene relations
+#' @return Return a \code{data.frame} indicating overlapped \code{GRanges} objects and 
+#' p-values
+intersect_links <- function(x, y) {
+  
+  # Calculate intersections
+  overlap.genes <- intersect(unique(x$gene), unique(y$gene))
+  x.overlap <- x[x$gene %in% overlap.genes]
+  y.overlap <- y[y$gene %in% overlap.genes]
+  query.subject <- GenomicAlignments::findOverlaps(query = x.overlap,
+                                                   subject = y.overlap)
+  # library(Repitools)
+  x.peaks <- Signac::GRangesToString(x)
+  x.genes <- x$gene
+  y.peaks <- Signac::GRangesToString(y)
+  overlap.df <- data.table::rbindlist(lapply(seq_along(query.subject), function(i) {
+    list(x.peak = x.peaks[queryHits(query.subject)[i]], 
+         y.peak = y.peaks[subjectHits(query.subject)[i]], 
+         gene = x.genes[queryHits(query.subject)[i]])
+  }))
+  return(overlap.df)
+}
+
+
+
+#' Calculate the precision, recall, and f-scores of the overlaps between 
+#' two lists of \code{GRanges} objects indicating enhancer-gene relations
+#' 
+#' @export
+#' @rdname intersect_links_in_batch
+#' 
+#' @param link.pairs The first list of \code{GRanges} objects saving enhancer-gene relations
+#' @param ep.ll The second list of \code{GRanges} objects saving enhancer-gene relations
+#' @param only.overlap Only consider the \code{GRanges} objects of which genes were overlapped against databases, 
+#' TRUE by default
+#' @param max.score Which score will be used to select the best query-hit pairs of \code{GRanges} objects,
+#' "precision" by default
+#' @return Returns a \code{data.frame} to indicate the query-hit pairs as well as precision, recall, and f-score
+#' 
+intersect_links_in_batch <- function(link.pairs, ep.ll, 
+                                     only.overlap = FALSE, 
+                                     max.score = "precision") {
+ 
+  # Load the peak-gene linkages
+  if (only.overlap) {
+    message ("Evaluating enhancer-gene relations only for the ones overlapped with enhancers ...\n", 
+             "There are in total ", length(link.pairs), " enhancer-gene relations before overlapping.")
+    link.pairs <- link.pairs[unique(queryHits(findOverlaps(link.pairs, do.call("c", ep.ll))))]
+    message ("There are in total ", length(link.pairs), " enhancer-gene relations after overlapping.")
+  }
+  n.pairs <- length(link.pairs)
+  if (n.pairs < 1) {
+    warning ("There is no enhancer-gene linkages input!")
+    if (only.overlap) {
+      warning ("Please note: we only consider the enhancers overlapped with enhancers!\n", 
+               "Enhancers not overlapped with enhancers may still exist.")
+    }
+    return(data.frame(EP = NA, precision = NA, recall = NA, fscore = NA))
+  }
+  message ("There are in total ", n.pairs, " enhancer-gene pairs input.")
+  
+  
+  # Calculate the overlaps
+  message ("Performing enrichment analysis against the enhancer-target pairs in databases ...")
+  score.dt <- data.table::rbindlist(pbapply::pblapply(seq_along(ep.ll), function(i) {
+    ee <- ep.ll[[i]]
+    overlap.genes <- intersect(unique(link.pairs$gene), unique(ee$gene))
+    overlap.query <- link.pairs[link.pairs$gene %in% overlap.genes]
+    overlap.subject <- ee[ee$gene %in% overlap.genes]
+    overlap.hit <- GenomicAlignments::findOverlaps(query = overlap.query, subject = overlap.subject)
+    hit.query <- length(unique(queryHits(overlap.hit)))
+    hit.subject <- length(unique(subjectHits(overlap.hit)))
+    precision <- hit.query / n.pairs
+    recall <- hit.subject / length(ee)
+    fscore <- 2 * precision * recall / (precision + recall)
+    list(EP = i, precision = precision, recall = recall, fscore = fscore)
+  }))
+  score.dt <- na.omit(score.dt)
+  max.scores <- score.dt[which.max(score.dt[[max.score]]),]
+  return(max.scores)
+}
