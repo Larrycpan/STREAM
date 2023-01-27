@@ -1,10 +1,4 @@
-#' @include epigenome_tools.R
-#' 
-NULL
-
-
-
-#' Subset a \code{Seurat} object
+#' Subset a \code{Seurat} object based on \code{IRIS-FGM} blocks
 #'
 #' @import dplyr
 #' @keywords internal
@@ -35,8 +29,6 @@ subset_object <- function(LTMG.obj, object, peak.assay = 'ATAC',
     }
     
     return(list(peaks = block.peaks, cells = block))
-    # return(subset(x = object, features = c(rownames(object[['RNA']]), block.peaks),
-    #               cells = block))
   }, mc.cores = parallel::detectCores()) )
 }
 
@@ -99,16 +91,10 @@ build_graph <- function(obj.list, obj = NULL, rna.dis, atac.dis,
              "Obtaining ", nrow(x), " enhancers.")
   }
   summ <- Matrix::summary(x)
-  # require(monocle3)
-  # require(SummarizedExperiment)
-  # require(SingleCellExperiment)
-  # convert the matrix into a sparse matrix
-
   cicero.data <- data.frame(Origin = rownames(x)[summ$i],
                             Destination = colnames(x)[summ$j],
                             Weight      = summ$x) # transform the sparse matrix into a data frame
   input.cds <- make_atac_cds(cicero.data, binarize = TRUE ) %>% detect_genes
-  # input.cds <- monocle3::detect_genes(input.cds)
   input.cds <- input.cds[Matrix::rowSums(monocle3::exprs(input.cds)) != 0, ] %>% estimate_size_factors %>%
     preprocess_cds(method = "LSI", verbose = FALSE) %>%
     reduce_dimension(reduction_method = 'UMAP', preprocess_method = "LSI")
@@ -167,71 +153,6 @@ build_graph <- function(obj.list, obj = NULL, rna.dis, atac.dis,
     ig
   }, mc.cores = max(1, parallel::detectCores() / 4)) )
 }
-
-
-
-# build_graph <- function(obj.list, obj = NULL,
-#                         distance = 500000, cicero.covar = 0,
-#                         org.gs = BSgenome.Hsapiens.UCSC.hg38,
-#                         signac.score = 0, signac.pval = 0.5,
-#                         min.cells = 10,
-#                         peak.assay = 'ATAC') {
-#
-#   # # Libraries
-#   # library(Signac)
-#   # library(cicero)
-#   # # library(org.gs)
-#   # library(pbapply)
-#   # library(igraph)
-#
-#
-#   `%!in%` <- Negate(`%in%`) # define the negation of %in%
-#   return(pbmclapply(obj.list, function(i) {
-#     x <- subset(x = obj, features = c(rownames(rna.dis), i$peaks),
-#                 cells = i$cells)
-#     signac.links <- link_signac(x, distance = distance,
-#                                 signac.score = signac.score,
-#                                 signac.pval = signac.pval,
-#                                 min.cells = min.cells,
-#                                 peak.assay = peak.assay)
-#     if (is.null(signac.links) | nrow(signac.links) < 1) {
-#       return(NULL)
-#     }
-#     signac.links
-#
-#
-#     # # Link a pair of enhancers
-#     # x.atac <- GetAssayData(object = x, slot = 'data',
-#     #                        assay = peak.assay) # extract the ATAC assay
-#     # ifelse (nrow(x.atac) <= 1000 | ncol(x.atac) <= 1000,
-#     #         cicero.links <- link_cor(x.atac, distance = distance * 2,
-#     #                                  cicero.covar = cicero.covar),
-#     #         cicero.links <- tryCatch(link_cicero(x.atac,
-#     #                                              distance = distance * 2, org.gs = org.gs,
-#     #                                              cicero.covar = cicero.covar),
-#     #                                  error = function(e) {
-#     #                                    message ('Error: something is wrong with Cicero.\n')
-#     #                                    0
-#     #                                  }))
-#     # if ((is.null(cicero.links) | "data.frame" %!in%
-#     #     class(cicero.links)) &
-#     #     nrow(x.atac) > 1000 &
-#     #     ncol(x.atac) > 1000) { # error exists
-#     #   cicero.links <- link_cor(x.atac, distance = distance * 2,
-#     #                            cicero.covar = cicero.covar)
-#     # }
-#     #
-#     #
-#     # quiet(ifelse ("data.frame" %in% class(cicero.links),
-#     #               links <- rbind(signac.links, cicero.links),
-#     #               links <- signac.links)) # bind two data frames
-#     # G <- graph_from_data_frame(links, directed = F) # build graph
-#     # E(G)$weight <- links$weight # assign the edge weights
-#     #
-#     #
-#     # G
-#   }, mc.cores = detectCores()))
-# }
 
 
 
@@ -306,6 +227,7 @@ score_HBC <- function(HBC, m = NULL, KL = "min.exp", Q = NULL,
                       P = NULL, G = NULL, VERY_SMALL = 0.00001) {
 
   if (KL == "KL") {
+    
     # Score HBCs using KL divergence
     R <- Matrix::t(apply(m[HBC$genes, HBC$cells], 1, function(r) {
       n <- sum(r > 0)
@@ -324,14 +246,17 @@ score_HBC <- function(HBC, m = NULL, KL = "min.exp", Q = NULL,
         return(C[j, 1] * log(C[j, 1] / P[j, 1]) + C[j, 2] * log(C[j, 2] / P[j, 2]))
       })))
   } else if (KL == "sum.weight") {
+   
     # Score HBCs using the total weights of enhancer-gene relations
     return( length(E(G)[HBC$genes %--% HBC$peaks]) * length(HBC$cells) -
       sum(E(G)[HBC$genes %--% HBC$peaks]$weight) )
   } else if (KL == "mean.weight") {
+    
     # Score HBCs using the mean weights of enhancer-gene relations
     return(length(HBC$cells) -
              mean(E(G)[HBC$genes %--% HBC$peaks]$weight))
   } else if (KL == "density.weight") {
+    
     # Score HBCs using the mean weights of enhancer-gene relations normalized
     # by the numbers of genes and enhancers
     return( (length(E(G)[HBC$genes %--% HBC$peaks]) * length(HBC$cells) -
@@ -413,7 +338,6 @@ SFP_seeding <- function(motif.obj = NULL, G.list, obj.list, bound.TFs, binding.C
     TF.freq <- TF.freq[order(TF.freq, decreasing = T)] # filter TFs
     TF.top <- names(TF.freq[1 : min(length(TF.freq), TOP_TFS)]) # select the top-ranked TFs
     ter.seeds <- lapply(TF.top, function(tt) {
-      # message (tt)
       overlap.genes <- intersect(TF.genes[[tt]], unique(df$terminal_node)) # genes regulated by the TF
       if (length(overlap.genes) <= score.cutoff) {
         return(NULL)
@@ -449,7 +373,6 @@ SFP_seeding <- function(motif.obj = NULL, G.list, obj.list, bound.TFs, binding.C
     
     return(ter.seeds)
   }, mc.cores = max(1, parallel::detectCores()) / 2) )
-  # }) )
   
   
   # Putative TFs not included in JASPAR 2022
@@ -500,7 +423,8 @@ SFP_seeding <- function(motif.obj = NULL, G.list, obj.list, bound.TFs, binding.C
                   sum(atac.dis[features, HBC$cells]) / 
                     length(HBC$cells)
           )
-        HBC$score <- score_HBC(HBC = HBC, KL = KL, m = rna.dis, P = P, Q = Q, G = G)
+        HBC$score <- score_HBC(HBC = HBC, KL = KL, m = rna.dis, 
+                               P = P, Q = Q, G = G)
         if (ifWeighted) {
           HBC$weight <- sum(atac.dis[HBC$peaks, HBC$cells]) /
             sum(rna.dis[HBC$genes, HBC$cells])
@@ -511,16 +435,12 @@ SFP_seeding <- function(motif.obj = NULL, G.list, obj.list, bound.TFs, binding.C
     )
     seeds <- c(seeds, puta.seeds)
   }
-  
-  
   seeds <- seeds[sapply(seeds, is.not.null)]
   seeds <- seeds[sapply(seeds, function(x) {
     length(x$genes) > 1 & length(x$cells) > 1
   })]
   score.ll <- sapply(seeds, "[[", ("score")) # obtain the scores
   seeds <- seeds[order(score.ll, decreasing = TRUE )] # sort the seeds in decreasing order of scores
-
-
   return(seeds[sapply(seeds, "[[", ("score")) > score.cutoff])
 }
 
@@ -557,8 +477,6 @@ intra_eligible_seed <- function(s, h, gene.cutoff = 1.0) {
   if (length(overlap.genes) > cutoff) {
     return(F)
   }
-
-
   return(T)
 }
 
@@ -570,7 +488,6 @@ intra_eligible_seed <- function(s, h, gene.cutoff = 1.0) {
 #' @importFrom dplyr %>%
 #' @importFrom igraph as_ids neighbors ends E %--% V
 #' @importFrom Matrix rowSums
-#'
 #'
 get_top_genes_peaks <- function(HBC, cand.genes, cand.peaks,
                                 top.ngenes = 100, G,
@@ -585,9 +502,6 @@ get_top_genes_peaks <- function(HBC, cand.genes, cand.peaks,
     sort(., decreasing = T) %>%
     head(n = top.ngenes) %>% names # sort genes in decreasing
   cand.peaks <- setdiff(cand.peaks, HBC$peaks) %>% intersect(., as_ids(V(G)))
-  # cand.peaks <- intersect(Reduce(union, parallel::mclapply(cand.genes, function(v) {
-  #   as_ids(neighbors(G, v, "all"))
-  # }, mc.cores = max(1, parallel::detectCores() / 2)) ), cand.peaks)
   end.mat <- ends(G, E(G)[cand.peaks %--% cand.genes])
   cand.peaks <- unique(end.mat[, 1])
   if (length(cand.peaks) < 1) {
@@ -641,8 +555,6 @@ expand_core <- function(HBC, top.genes.peaks, rna.m, atac.m, G,
         return(list(gene = g, peak = NA, cells = g.cells))
       }
       g.peaks <- choice.gene.peaks[[g]]
-      # g.peaks <- as.data.frame(ends(G, E(G)[g %--% choice.peaks])) %>% `[[` (1) %>% unique
-
       if (length(g.peaks) < 1) {
         return(NULL)
       }
@@ -776,8 +688,6 @@ expand_fuzzy <- function(HBC, G, cand.genes, cand.peaks, rna.m, atac.m,
   HBC$peaks <- add.peaks
   # HBC$cells <- add.cells
   HBC$score <- score_HBC(HBC, KL = KL, Q = Q, P = P, m = m, G = G) # score the HBC
-
-
   HBC
 }
 
@@ -797,8 +707,6 @@ expand_cells <- function(HBC = NULL, m = NULL, mm = NULL, quantile.cutoff = 4,
     quantile(apply(mm[HBC$peaks, HBC$cells], 2, sum))[quantile.cutoff]))
   HBC$cells <- c(HBC$cells, peak.cells)
   HBC$score <- score_HBC(HBC, KL = KL, Q = Q, P = P, m = m, G = G)
-
-
   HBC
 }
 
@@ -807,7 +715,6 @@ expand_cells <- function(HBC = NULL, m = NULL, mm = NULL, quantile.cutoff = 4,
 #' Expand a hybrid bicluster (HBC)
 #'
 #' @keywords internal
-#'
 #'
 #' @importFrom igraph %--% ends E
 #'
@@ -841,8 +748,6 @@ expand_HBC <- function(HBC, cand.genes, cand.peaks, quantile.cutoff = 4,
   GenomicRanges::mcols(HBC.links)$gene <- HBC.ends[, 2]
   HBC$links <- HBC.links
   HBC$weight <- sum(atac.dis[HBC$peaks, HBC$cells]) / sum(rna.dis[HBC$genes, HBC$cells])
-
-
   return(HBC)
 }
 
@@ -878,8 +783,6 @@ exist_seed <- function(s, HBCs, same.terminal = T,
       }
     }
   }
-
-
   return(T)
 }
 
@@ -905,8 +808,6 @@ inter_eligible_seed <- function(s, h,
   if (length(overlap.peaks) <= cutoff) {
     return(T)
   }
-
-
   return(F)
 }
 
@@ -959,7 +860,6 @@ hybrid_biclust <- function(seeds = NULL, rna.list = NULL, atac.list = NULL,
                        char = "=")   # Character used to create the bar
 
 
-  # for (i in 1:5) {
   for (i in seq_along(seeds)) {
     HBC <- seeds[[i]]
     Sys.sleep(0.1) # Remove this line and add your code
@@ -967,7 +867,6 @@ hybrid_biclust <- function(seeds = NULL, rna.list = NULL, atac.list = NULL,
 
 
     idd <- idd + 1
-    # message ("\nProcessing the putative seed : ", idd, " ...")
     if (!exist_seed(s = HBC, HBCs = HBCs, same.terminal = same.terminal,
                     intra.cutoff = intra.cutoff,
                     inter.cutoff = inter.cutoff,
@@ -977,7 +876,6 @@ hybrid_biclust <- function(seeds = NULL, rna.list = NULL, atac.list = NULL,
     id <- id + 1
 
 
-    # message("Processing the ", id, " hybrid bicluster ...")
     HBC <- expand_HBC(HBC = HBC, cand.peaks = binding.CREs[[HBC$TF]] ,
                       rna.m = rna.list[[HBC$terminal]] , atac.m = atac.list[[HBC$terminal]] ,
                       cand.genes = TFGene.pairs[[HBC$terminal]]$TF.genes[[HBC$TF]] ,
@@ -996,165 +894,6 @@ hybrid_biclust <- function(seeds = NULL, rna.list = NULL, atac.list = NULL,
 
   return(HBCs)
 }
-
-
-
-# merge_HBCs <- function(HBCs, stat = T, phyper.cutoff = 0.05,
-#                        rna.dis, atac.dis) {
-#
-#   if (length(HBCs) < 2) {
-#     return(HBCs)
-#   }
-#   HBCs <- HBCs[HBCs %>% sapply(., "[[", ("genes")) %>% sapply(., length) > 2]
-#   HBCs <- HBCs[HBCs %>% sapply(., "[[", ("cells")) %>% sapply(., length) > 2]
-#   sorted.HBCs <- HBCs[order(HBCs %>% sapply(., "[[", ("score")), decreasing = T)]
-#   HBC.TFs <- unique(sapply(sorted.HBCs, "[[", "TF"))
-#   new.HBCs <- do.call("c", pbmclapply(HBC.TFs, function(tf) {
-#     TF.HBCs <- sorted.HBCs[sapply(sorted.HBCs, "[[", "TF") == tf]
-#     if (length(TF.HBCs) < 2) {
-#       return(TF.HBCs)
-#     }
-#     if (stat) {
-#       TF.cells <- Reduce(union, unlist(sapply(TF.HBCs, "[[", "cells")))
-#       N <- length(TF.cells)
-#       comb.pairs <- combn(seq_along(TF.HBCs), 2)
-#       adj.p.cutoff <- phyper.cutoff * length(TF.HBCs) * length(TF.HBCs)
-#       tri.df <- rbindlist(lapply(1:ncol(comb.pairs), function(j) {
-#         l1 <- comb.pairs[1, j]
-#         l2 <- comb.pairs[2, j]
-#         h1 <- TF.HBCs[[l1]]$cells
-#         h2 <- TF.HBCs[[l2]]$cells
-#         m <- length(h1)
-#         k <- length(h2)
-#         q <- length(intersect(h1, h2))
-#         weight <- phyper(q - 1, m, N - m, k, lower.tail = F)
-#         return(list(node1 = l1, node2 = l2, weight = weight))
-#       }), fill = T) %>% dplyr::filter(weight <= adj.p.cutoff) %>%
-#         dplyr::select(node1, node2) # build an igraph object
-#       if (nrow(tri.df) < 1) { # no need to merge
-#         return(TF.HBCs)
-#       }
-#       TF.cliques <- max_cliques(graph_from_data_frame(d = tri.df, directed = F)) # find maximal cliques
-#       merged.TF.HBCs <- lapply(TF.cliques, function(k) {
-#         HBC.list <- as.numeric(as_ids(k)) # the terminals to obtain the merged HBC
-#         clique.HBCs <- TF.HBCs[HBC.list] # the HBCs belonging to this clique
-#         terminal <- as.vector(sapply(clique.HBCs, "[[", "terminal"))
-#         genes <- unique(unlist(lapply(clique.HBCs, "[[", "genes")))
-#         peaks <- unique(unlist(lapply(clique.HBCs, "[[", "peaks")))
-#         cells <- unique(unlist(lapply(clique.HBCs, "[[", "cells")))
-#         atac.ratio <- mean(apply(atac.dis[peaks, cells], 1, sum)) / length(cells)
-#         new.HBC <- list(terminal = terminal, TF = tf, genes = genes, peaks = peaks,
-#                         cells = cells, atac.ratio = atac.ratio, score = 0)
-#         new.HBC$score <- score_HBC(new.HBC, KL = 6)
-#
-#
-#         new.HBC
-#       })
-#       ifelse(length(TF.cliques) < 2, covered.HBCs <- as.numeric(as_ids(TF.cliques[[1]])),
-#              covered.HBCs <- unique(unlist(sapply(TF.cliques, function(y) {
-#                as.numeric(as_ids(y))
-#              })))) # the set of merged HBCs
-#       isolated.TF.HBCs <- TF.HBCs[setdiff(seq_along(TF.HBCs), covered.HBCs)] # the isolated HBC
-#       return(c(merged.TF.HBCs, isolated.TF.HBCs)) # merge the new HBCs
-#     }
-#   }, mc.cores = detectCores()))
-#
-#
-#   return(new.HBCs[order(sapply(new.HBCs, "[[", "score"), decreasing = T)])
-# }
-
-
-
-# patch_HBCs <- function(merged.HBCs, binding.CREs, x, peak.ratio = NULL,
-#                        peak.assay = "ATAC", distance = Inf) {
-#
-#   # # Libraries
-#   # library(Seurat)
-#   # library(pbmcapply)
-#   # library(dplyr)
-#   # library(Signac)
-#
-#
-#   `%!in%` <- Negate(`%in%`) # define the negation of %in%
-#
-#
-#   rna.m <- binarize(GetAssayData(x, slot = "data", assay = "RNA"))
-#   gene.coords <- CollapseToLongestTranscript(ranges = Annotation(object = x[[peak.assay]]))
-#   atac.m <- binarize(GetAssayData(x, slot = "data", assay = peak.assay))
-#   patched.HBCs <- pbmclapply(seq_along(merged.HBCs), function(i) {
-#     HBC <- merged.HBCs[[i]]
-#     HBC.rna <- rna.m[setdiff(rownames(rna.m), HBC$genes), HBC$cells, drop = F]
-#     genes.keep <- names(which(rowSums(HBC.rna) == ncol(HBC.rna))) %>%
-#       intersect(gene.coords$gene_name) # genes to keep
-#     if (length(genes.keep) < 1) { # No gene has coordinate annotation
-#       add.HBC <- HBC
-#     } else if (!is.finite(distance)) { # Without constraints of peaks
-#       HBC.seqs <- unique(seqnames(gene.coords[gene.coords$gene_name %in% HBC$genes]))
-#       genes.keep.coords <- gene.coords[gene.coords$gene_name %in% genes.keep] # coordinates of genes to add
-#       add.HBC <- HBC
-#       add.HBC$genes <- c(add.HBC$genes, genes.keep.coords[seqnames(genes.keep.coords) %in% HBC.seqs]$gene_name)
-#       add.HBC$score <- score_HBC(HBC = add.HBC, KL = 6)
-#     } else {
-#       HBC.gene.coords <- gene.coords[which(gene.coords$gene_name %in% genes.keep)] # coordinates to keep
-#       peak.HBC.distance <- DistanceToTSS(peaks = StringToGRanges(HBC$peaks), genes = HBC.gene.coords,
-#                                          distance = distance) # get the distance between genes and included peaks
-#       add.genes <- c(names(which(colSums(peak.HBC.distance) > 0))) # directly add the genes
-#       if (length(add.genes) < 1) {
-#         add.HBC <- HBC
-#       } else {
-#         HBC.gene.coords <- HBC.gene.coords[HBC.gene.coords$gene_name %!in% add.genes]
-#         HBC.atac <- atac.m[setdiff(binding.CREs[[HBC$TF]], HBC$peaks), HBC$cells, drop = F]
-#         peak.ratio <- quantile(rowSums(atac.m[HBC$peaks, HBC$cells,
-#                                               drop = F]))[[3]] / ncol(HBC.atac) # 25% quantile
-#         peaks.keep <- names(which(rowSums(HBC.atac) >= peak.ratio * ncol(HBC.atac))) # peaks to keep
-#         if (length(peaks.keep) < 1) { # Only add the genes linked to the peaks incorporated in the HBC
-#           add.HBC <- HBC
-#           add.HBC$genes <- c(add.HBC$genes, add.genes)
-#           add.HBC$score <- score_HBC(HBC = add.HBC, KL = 6)
-#         } else { # Have qualified peaks
-#           peaks.keep.GR <- StringToGRanges(peaks.keep) # get GRange objects
-#           peak_distance_matrix <- DistanceToTSS(peaks = peaks.keep.GR, genes = HBC.gene.coords,
-#                                                 distance = distance) # get the distance between peaks and genes
-#           if (sum(peak_distance_matrix) == 0) {
-#             add.HBC <- HBC
-#             add.HBC$genes <- c(add.HBC$genes, add.genes)
-#             add.HBC$score <- score_HBC(HBC = add.HBC, KL = 6)
-#           } else {
-#             colnames(peak_distance_matrix) <- HBC.gene.coords$gene_name # rename the columns
-#             row.col <- get_coherent_peak_gene_pairs(peak_distance_matrix = peak_distance_matrix,
-#                                                     HBC.rna = HBC.rna, HBC.atac = HBC.atac)
-#             add.HBC <- HBC
-#             add.HBC$genes <- c(HBC$genes, names(row.col)) # update the genes
-#             add.HBC$peaks <- union(HBC$peaks, row.col) # update the peaks
-#             add.HBC$score <- score_HBC(HBC = add.HBC, KL = 6)
-#           }
-#         }
-#       }
-#     }
-#     add.gene.cells <- names(which(colSums(rna.m[HBC$genes,
-#                                                 setdiff(colnames(rna.m),
-#                                                         HBC$cells),
-#                                                 drop = F]) >= length(HBC$genes)))
-#     if (is.finite(distance)) {
-#       peak.ratio <- quantile(colSums(atac.m[HBC$peaks, HBC$cells,
-#                                             drop = F]))[[3]] / length(HBC$peaks)
-#     } else {
-#       peak.ratio <- quantile(colSums(atac.m[HBC$peaks, HBC$cells,
-#                                             drop = F]))[[4]] / length(HBC$peaks)
-#     }
-#     peak.cell.cutoff <- peak.ratio * length(HBC$peaks)
-#     add.peak.cells <- names(which(colSums(atac.m[HBC$peaks, add.gene.cells,
-#                                                  drop = F]) >= peak.cell.cutoff))
-#     add.HBC$cells <- c(add.HBC$cells, add.peak.cells)
-#     add.HBC$score <- score_HBC(add.HBC, KL = 6) # score the HBC
-#
-#
-#     return(add.HBC)
-#   }, mc.cores = min(detectCores(), length(merged.HBCs)))
-#
-#
-#   return(patched.HBCs[!sapply(patched.HBCs, is.null)])
-# }
 
 
 
@@ -1190,26 +929,7 @@ compute_original_sim <- function(HBCs, features = "genes") {
 
     return(data.table::rbindlist(sq1.sim[!is.na(sq1.sim)], fill = T))
   }, mc.cores = min(parallel::detectCores(), length(HBCs)))) )
-  # %>%
-  #   dplyr::filter(HBC1 != HBC2))
 }
-
-
-
-# normalize_sim <- function(sim.df, HBCs) {
-#
-#   same.df <- sim.df[sim.df$Same.TF, ] # pairs regulated by the same TF
-#   diff.df <- sim.df[!sim.df$Same.TF, ] # pairs regulated by different TFs
-#   norm.same.df <- same.df
-#   norm.same.df$Sim <- (norm.same.df$Sim - mean(norm.same.df$Sim)) / sd(norm.same.df$Sim)
-#   norm.diff.df <- diff.df
-#   norm.diff.df$Sim <- (norm.diff.df$Sim - mean(norm.diff.df$Sim)) / sd(norm.diff.df$Sim)
-#   return(rbind(norm.same.df, norm.diff.df, data.frame(HBC1 = seq_along(HBCs),
-#                                                       HBC2 = seq_along(HBCs),
-#                                                       Sim = rep(1, length(HBCs)),
-#                                                       Same.TF = rep(T, length(HBCs)))))
-#
-# }
 
 
 
@@ -1222,10 +942,6 @@ compute_sim <- function(HBCs) {
   message ("Calculating the pairwise similarity between hybrid biclusters (HBCs) ...")
   gene.sim.df <- compute_original_sim(HBCs = HBCs) # compute the original similarity overlaps on expression level
   peak.sim.df <- compute_original_sim(HBCs = HBCs, features = "peaks")
-  # norm.gene.df <- normalize_sim(sim.df = gene.sim.df, HBCs = HBCs) # normalize the similarity matrix
-  # norm.peak.df <- normalize_sim(sim.df = peak.sim.df, HBCs = HBCs) # normalize the similarity matrix
-
-
   norm.gene.df <- gene.sim.df
   norm.gene.df$Sim <- scale(norm.gene.df$Sim)
   norm.peak.df <- peak.sim.df
@@ -1234,13 +950,8 @@ compute_sim <- function(HBCs) {
 
   norm.sim.df <- norm.gene.df
   norm.sim.df$Sim <- pmin(norm.gene.df$Sim, norm.peak.df$Sim)
-  # norm.sim.df$Sim <- parallel::mclapply(1:nrow(norm.gene.df), function(i) {
-  #   min(norm.gene.df$Sim[i], norm.peak.df$Sim[i])
-  # }, mc.cores = parallel::detectCores() ) %>% unlist
   sim.m <- Matrix::sparseMatrix(i = norm.sim.df$HBC1, j = norm.sim.df$HBC2,
                         x = norm.sim.df$Sim) # generate a similarity matrix
-
-
   sim.m
 }
 
@@ -1250,17 +961,6 @@ compute_sim <- function(HBCs) {
 #'
 #' @keywords internal
 #'
-# compute_add <- function(query, hit, sim.m, HBC.max.sim) {
-#
-#   # return( unlist(sapply(query, function(i) {
-#   #   add.sim <- max(sim.m[i, tail(hit, n = 1)],
-#   #                  sim.m[tail(hit, n = 1), i])
-#   #   ifelse (HBC.max.sim[[i]] < add.sim, return(add.sim),
-#   #           return(HBC.max.sim[[i]]))
-#   # })) )
-#   return(apply(sim.m[query, hit, drop = FALSE], 1, max))
-# }
-
 compute_add <- function(query, hit, sim.m, HBC.max.sim) {
 
   return(apply(sim.m[query, hit, drop = FALSE], 1, max))
@@ -1272,24 +972,6 @@ compute_add <- function(query, hit, sim.m, HBC.max.sim) {
 #'
 #' @keywords internal
 #'
-# select_HBC <- function(HBCs, sim.m, HBC.flag, HBC.max.sim,
-#                        regulon.ids) {
-#
-#   max.sim.ll <- parallel::mclapply(seq_along(HBCs), function(x) {
-#     if (!HBC.flag[x]) {
-#       return(-1)
-#     } # do not consider the HBCs that have been already selected
-#     return(compute_add(query = seq_along(HBCs), hit = c(regulon.ids, x),
-#                        sim.m = sim.m,
-#                        HBC.max.sim = HBC.max.sim))
-#     # compute the objective value
-#   }, mc.cores = max(1, parallel::detectCores() / 2) )
-#   which.HBC <- which.max(unlist(sapply(max.sim.ll, sum)))
-#
-#
-#   return(list(which.HBC, max.sim.ll[[which.HBC]]))
-# }
-
 select_HBC <- function(HBCs, sim.m, HBC.flag, HBC.max.sim,
                        step = 30,
                        regulon.ids) {
@@ -1303,14 +985,11 @@ select_HBC <- function(HBCs, sim.m, HBC.flag, HBC.max.sim,
                        HBC.max.sim = HBC.max.sim) )
     # compute the objective value
   }, mc.cores = max(1, parallel::detectCores() / 2) )
-  # which.HBC <- which.max(unlist(sapply(max.sim.ll, sum)))
   which.HBC <- head(order(unlist(sapply(max.sim.ll, sum)), decreasing = TRUE),
                     n = step)
   which.val <- compute_add(query = seq_along(HBCs) , hit = c(regulon.ids, which.HBC),
               sim.m = sim.m,
               HBC.max.sim = HBC.max.sim)
-
-
   return(list(which.HBC, which.val))
 }
 
@@ -1353,53 +1032,6 @@ calculate_sil <- function(selected.HBCs, links.df) {
 #'
 #' @keywords internal
 #'
-# sub_mod <- function(HBCs, sim.m, G.list, n.cells, rna.list, block.list,
-#                     obj, peak.assay = "ATAC", links.df,
-#                     min.eRegs = 100, submod.mode = 1,
-#                     distance = 500000) {
-#
-#   regulon.ids <- c() # the list of HBC ids
-#   obj.list <- c() # the list of objective values
-#   HBC.flag <- rep(T, length(HBCs))
-#   HBC.max.sim <- rep(-1, length(HBCs))
-#   max.n <- 0 # the number of HBCs to select which yields the maximum objective value
-#   max.obj <- -2 # the current maximum objective value
-#   # links.df <- filter_nearby_genes(obj, distance = distance,
-#   #                                 peak.assay = peak.assay)
-#
-#
-#   message ("Optimizing the set of enhancer regulons (eRegulons) via submodular function ...")
-#   pb <- utils::txtProgressBar(min = 0,      # Minimum value of the progress bar
-#                               max = length(HBCs), # Maximum value of the progress bar
-#                               style = 3,    # Progress bar style (also available style = 1 and style = 2)
-#                               width = 50,   # Progress bar width. Defaults to getOption("width")
-#                               char = "=")   # Character used to create the bar
-#   while (1) {
-#     utils::setTxtProgressBar(pb, length(regulon.ids))
-#     double.output <- select_HBC(HBCs = HBCs, sim.m = sim.m,
-#                                 HBC.flag = HBC.flag,
-#                                 HBC.max.sim = HBC.max.sim,
-#                                 regulon.ids = regulon.ids) # select the next HBC
-#     add.id <- double.output[[1]]
-#     HBC.max.sim <- double.output[[2]]
-#     regulon.ids <- c(regulon.ids, add.id) # add the new HBC
-#     HBC.flag[add.id] <- F # mask this selected HBC
-#     obj.list <- c(obj.list, calculate_sil(selected.HBCs = HBCs[regulon.ids],
-#                                           links.df = links.df))
-#     if (length(regulon.ids) >= length(HBCs)) {
-#       break
-#     }
-#   }
-#
-#   max.n <- tail(which(obj.list == max(obj.list[(min.eRegs + 1) :
-#                                                  length(HBCs)])), n = 1)
-#   message (max.n, " enhancer regulons (eRegulons) yield the maximum score.")
-#   eRegs <- HBCs[regulon.ids[1 : max.n]] # select regulons
-#
-#
-#   return(list(eRegs = eRegs, obj = obj.list))
-# }
-#'
 sub_mod <- function(HBCs, sim.m, G.list, n.cells, rna.list, block.list,
                     obj, peak.assay = "ATAC", links.df,
                     min.eRegs = 100, step = 50) {
@@ -1410,8 +1042,6 @@ sub_mod <- function(HBCs, sim.m, G.list, n.cells, rna.list, block.list,
   HBC.max.sim <- rep(-1, length(HBCs))
   max.n <- 0 # the number of HBCs to select which yields the maximum objective value
   max.obj <- -2 # the current maximum objective value
-  # links.df <- filter_nearby_genes(obj, distance = distance,
-  #                                 peak.assay = peak.assay)
 
 
   message ("Optimizing the set of enhancer regulons (eRegulons) via submodular function ...")
@@ -1445,49 +1075,12 @@ sub_mod <- function(HBCs, sim.m, G.list, n.cells, rna.list, block.list,
   #                                                length(HBCs) / step ])), n = 1)
   eRegs <- HBCs[regulon.ids[1 : max(min.eRegs, as.numeric(names(which.max(obj.list))))]] # select regulons
   message (length(eRegs), " enhancer regulons (eRegulons) yield the maximum score.")
-
-
   return(list(eRegs = eRegs, obj = obj.list))
 }
 
 
 
-# expand_eGRNs <- function(obj, submod.HBCs, peak.assay = 'ATAC',
-#                          distance = 250000, expand.cutoff = 0.70) {
-#
-#   # # Libraries
-#   # library(Seurat)
-#   # library(Signac)
-#   # library(pbapply)
-#
-#
-#   # Expansion
-#   rna.m <- GetAssayData(object = obj, slot = "data", assay = "RNA") > 0 # get the RNA expression matrix
-#   atac.m <- GetAssayData(object = obj, slot = "data", assay = peak.assay) > 0
-#   gene.coords <- CollapseToLongestTranscript(ranges = Annotation(object = obj[[peak.assay]])) # coordinates
-#   distance.df <- DistanceToTSS(peaks = StringToGRanges(rownames(atac.m)),
-#                                genes = gene.coords,
-#                                distance = distance) # distance matrix
-#   expanded.eGRNs <- pblapply(submod.HBCs, function(x) {
-#     add.genes <- setdiff(names(which(apply(rna.m[, x$cells], 1, sum) >=
-#                                        length(x$cells) * expand.cutoff)),
-#                          x$genes) # select additional genes
-#     add.coords <- gene.coords[gene.coords$gene_name %in% add.genes] # subset the genes to add
-#     overlap.genes <- intersect(add.genes, colnames(distance.df)) # some genes have not coordinates
-#     add.dist <- summary(distance.df[, overlap.genes]) # get the distance matrix
-#     x$gene.status <- c(rep(T, length(x$genes)), rep(F, length(add.genes))) # record the status of genes
-#     x$genes <- c(x$genes, add.genes) # extend genes
-#     x
-#   })
-#
-#
-#   expanded.eGRNs
-# }
-
-
-
 #' Convert a pair of scRNA-seq and scATAC-seq mastrices into a \code{Seurat} object
-#'
 #'
 #' @keywords internal
 #'
@@ -1536,7 +1129,5 @@ rna_atac_matrices_to_Seurat <- function(rna_counts = NULL, atac_counts = NULL,
     )
   }
   pbmc[["ATAC"]] <- chrom_assay
-
-
   pbmc
 }

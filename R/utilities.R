@@ -17,8 +17,6 @@ binarize <- function(x) {
   )
   rownames(xx) <- rownames(x)
   colnames(xx) <- colnames(x)
-
-
   xx
 }
 

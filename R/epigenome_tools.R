@@ -24,7 +24,7 @@ org_to_DB <- function(org = "hg38") {
 
 
 #'
-#' @export
+#' @keywords internal
 #' 
 generate_windows <- function(window, genomic_coords) {
   
@@ -51,7 +51,7 @@ generate_windows <- function(window, genomic_coords) {
 
 
 #'
-#' @export
+#' @keywords internal
 #' 
 get_genomic_range <- function(grs, cds, win) {
   
@@ -72,7 +72,7 @@ get_genomic_range <- function(grs, cds, win) {
 
 
 #'
-#' @export
+#' @keyword internal
 #' 
 find_distance_parameter <- function(dist_mat,
                                     gene_range,
@@ -137,7 +137,7 @@ find_distance_parameter <- function(dist_mat,
 
 
 #'
-#' @export
+#' @keyword internal
 #' 
 calc_dist_matrix <- function(gene_range) {
   
@@ -150,7 +150,7 @@ calc_dist_matrix <- function(gene_range) {
 
 
 #'
-#' @export
+#' @keyword internal
 #' 
 estimate_distance_parameter <- function(cds,
                                         window=500000,
@@ -187,10 +187,8 @@ estimate_distance_parameter <- function(cds,
   it <- 0
   
   while(sample_num > distance_parameters_calced & it < max_sample_windows) {
-    # message (it, "\n")
     it <- it + 1
     win <- sample(seq_len(length(grs)), 1)
-    # message (win, "\n")
     GL <- "Error"
     win_range <- get_genomic_range(grs, cds, win)
     
@@ -231,7 +229,7 @@ estimate_distance_parameter <- function(cds,
 
 
 #'
-#' @export
+#' @keyword internal
 #' 
 get_rho_mat <- function(dist_matrix, distance_parameter, s) {
   xmin <- 1000
@@ -246,7 +244,7 @@ get_rho_mat <- function(dist_matrix, distance_parameter, s) {
 
 
 #'
-#' @export
+#' @keyword internal
 #' 
 generate_cicero_models <- function(cds, distance_parameter, s = 0.75, window = 5e+05,
                                    max_elements = 200, genomic_coords = NULL) {
@@ -297,7 +295,7 @@ generate_cicero_models <- function(cds, distance_parameter, s = 0.75, window = 5
 
 
 #'
-#' @export
+#' @keyword internal
 #' 
 assemble_connections <- function (cicero_model_list, silent = FALSE) {
   
@@ -331,7 +329,6 @@ assemble_connections <- function (cicero_model_list, silent = FALSE) {
 
 #' 
 #' @keywords internal
-#' @export
 #' 
 make_atac_cds <- function(input, binarize = FALSE ) {
   
@@ -397,7 +394,7 @@ make_atac_cds <- function(input, binarize = FALSE ) {
 
 
 #'
-#' @export
+#' @keyword
 #' 
 run_cicero <- function(cds,
                        genomic_coords,
@@ -440,7 +437,7 @@ run_cicero <- function(cds,
 
 
 #' 
-#' @export
+#' @keyword internal
 #' 
 df_for_coords <- function (coord_strings) {
   
@@ -457,7 +454,7 @@ df_for_coords <- function (coord_strings) {
 
 
 #' 
-#' @export
+#' @keyword internal
 #' 
 split_peak_names <- function(inp) {
   
@@ -472,7 +469,7 @@ split_peak_names <- function(inp) {
 
 
 #' 
-#' @export
+#' @keyword
 #' 
 make_cicero_cds <- function(cds, reduced_coordinates, k = 50, summary_stats = NULL,
                             size_factor_normalize = TRUE, silent = FALSE,
@@ -604,7 +601,7 @@ make_cicero_cds <- function(cds, reduced_coordinates, k = 50, summary_stats = NU
 
 
 #' 
-#' @export
+#' @keyword internal
 #' 
 reconcile <- function(values) {
   if (length(values) == 1) return(values)
@@ -634,54 +631,4 @@ overlap_peak_lst <- function(lst1, lst2) {
     x = 1,
     dims = c(length(x = lst1), length(x = lst2))
   ) # build a sparse matrix to record the overlaps between peaks and extended genomic ranges of genes
-}
-
-
-
-#' Calculate the p-values of overlaps between two \code{GRanges} objects
-#' 
-#' @export
-#' @rdname intersect_peaks
-#' 
-#' @param x The first \code{GRanges} object or \code{data.frame}
-#' @param y The first \code{GRanges} object or \code{data.frame}
-#' @param n.times The number of times of permutation, 1000 by default
-#' @param alternative The direction of alternative hypot6hesis, "greater" by default
-#' @return Return a numeric p-value
-intersect_peaks <- function(x, y, n.times = 100, alternative = "greater") {
-
-  # Calculate intersections
-  message ("Perform significance test between two GRange objects composed of ", 
-           length(x), " and ", length(y), " peaks.")
-  regioneR::overlapPermTest(A = x, B = y, ntimes = n.times, alternative = alternative)
-}
-
-
-
-#' Calculate the p-values of overlaps between two lists of \code{GRanges} objects
-#' 
-#' @export
-#' @rdname intersect_peaks_in_batch
-#' 
-#' @param x.ll The first list of \code{GRanges} objects
-#' @param y.ll The first list of \code{GRanges} objects
-#' @param n.times The number of times of permutation, 1000 by default
-#' @return Returns a \code{data.frame} composed of the IDs of significantly overlapped 
-#' \code{GRanges} objects and p-values
-intersect_peaks_in_batch <- function(x.ll, y.ll, n.times = 100) {
-
-  message ("Perform significance test between two lists composed of ", 
-           length(x.ll), " and ", length(y.ll), " GRange objects.")
-  pval.df <- data.frame(numeric(), numeric(), 
-                        numeric())
-  for (i in seq_along(x.ll)) {
-    for (j in seq_along(y.ll)) {
-      pval <- suppressMessages(intersect_peaks(x = x.ll[[i]], y = y.ll[[j]], n.times = n.times))
-      pval.df <- rbind(pval.df, c(i, j, pval))
-    }
-  }
-  message ("Finished performing enrichment analysis between two lists.\n", 
-           nrow(pval.df), " pairs of peak lists have been compared.")
-  colnames(pval.df) <- c("query", "subject", "pval")
-  return(pval.df)
 }

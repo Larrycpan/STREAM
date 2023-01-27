@@ -1,4 +1,4 @@
-#' Calculate the distance for each enhancer to their nearest TSS,
+#' Calculate the distance for enhancers to their nearest TSS,
 #' which was borrowed from Signac
 #'
 #' @keywords internal
@@ -92,18 +92,20 @@ filter_nearby_genes <- function(obj, distance = 1e+6, peak.assay = "ATAC") {
 
 
 
-# Link matrix to granges
-#
-# Create set of genomic ranges from a sparse matrix containing links
-#
-# @param linkmat A sparse matrix with genes in the rows and peaks in the
-# columns
-# @param gene.coords Genomic coordinates for each gene
-# @return Returns a GRanges object
+#' Link matrix to granges
+#' 
+#' @keywords internal
+#' 
+#' @param linkmat A sparse matrix with genes in the rows and peaks in the
+#' columns
+#' @param gene.coords Genomic coordinates for each gene
+#' @return Returns a GRanges object
 #' @importFrom GenomicRanges resize start width GRanges makeGRangesFromDataFrame
 #' @importFrom IRanges IRanges
 #' @importFrom BiocGenerics sort
+#' 
 LinksToGRanges <- function(linkmat, gene.coords, sep = c("-", "-")) {
+ 
   # get TSS for each gene
   tss <- resize(gene.coords, width = 1, fix = 'start')
   gene.idx <- sapply(
@@ -147,87 +149,6 @@ LinksToGRanges <- function(linkmat, gene.coords, sep = c("-", "-")) {
 
 
 
-# link_signac <- function(x, distance = 500000,
-#                         signac.score = 0,
-#                         signac.pval = 1,
-#                         min.cells = 10,
-#                         peak.assay = 'ATAC') {
-#
-#   DefaultAssay(x) <- peak.assay # set 'ATAC' as he default assay
-#   xx <- x # back up
-#   x <- tryCatch(LinkPeaks(object = x, distance = distance,
-#                            min.cells = min.cells,
-#                            peak.assay = peak.assay, expression.assay = 'RNA',
-#                            pvalue_cutoff = signac.pval,
-#                            score_cutoff = signac.score, verbose = T),
-#                 error = function(e) {
-#                   0 }) # build linkages
-#   if (!is.numeric(x)) {
-#     signac.links <- data.frame(node1 = x[[peak.assay]]@links$peak,
-#                                node2 = x[[peak.assay]]@links$gene,
-#                                weight = x[[peak.assay]]@links$score)
-#   } else {
-#     x <- xx
-#     signac.links <- filter_nearby_genes(obj = x) # link peaks to genes using heuristics
-#     signac.links <- cbind(signac.links, pbmclapply(1 : nrow(signac.links),
-#                                                    function(i) {
-#       vx <- as.vector(x[["RNA"]][signac.links$gene[i]])
-#       vy <- as.vector(x[[peak.assay]][signac.links$peak[i]])
-#
-#       if (sum(vx > 0) <= 0 | sum(vy > 0) <= 0) {
-#         return(0)
-#       } else if (sd(vx) == 0 | sd(vy) == 0) {
-#         return(1)
-#       } else {
-#         return(cor(x = vx, y = vy, method = "pearson"))
-#       }
-#     }, mc.cores = min(detectCores(), nrow(signac.links))) %>% unlist)
-#     colnames(signac.links) <- c("node1", "node2", "weight")
-#     signac.links <- signac.links[signac.links$weight > signac.score,] # filter linkages
-#   } # no peaks are linked to the genes
-#   if (nrow(signac.links) < 1) {
-#     return(NULL)
-#   }
-#
-#
-#   # Calculate weights
-#   max.weight <- max(signac.links$weight)
-#   min.weight <- min(signac.links$weight)
-#   diff <- max.weight - min.weight
-#   ifelse(diff > 0, signac.links$weight <- (max.weight - signac.links$weight) /
-#            diff, signac.links$weight <- 0) # normalize the weights
-#   message ('Identified ', nrow(signac.links), ' enhancer-gene linkages.\n')
-#
-#   signac.links
-# }
-
-
-
-# get_coherent_peak_gene_pairs <- function(peak_distance_matrix,
-#                                          HBC.rna, HBC.atac) {
-#
-#   # Libraries
-#   library(data.table)
-#
-#
-#   row.col <- which(peak_distance_matrix > 0, arr.ind = T) # get the nonzero elements
-#   peak.gene <- rbindlist(apply(row.col, 1, function(rr) {
-#     return(list(rownames(peak_distance_matrix)[rr[1]], colnames(peak_distance_matrix)[rr[2]]))
-#   })) # convert row and column ids into peaks and rows
-#   colnames(peak.gene) <- c("peak", "gene")
-#   peak.gene.weight <- cbind(peak.gene, weight = apply(peak.gene, 1, function(rr) {
-#     return(length(which(HBC.atac[rr[1], ] > 0 & HBC.rna[rr[2], ] > 0)))
-#   }))
-#   peak.gene.weight <- peak.gene.weight[with(peak.gene.weight, order(gene, -weight))] # sort the data frame
-#
-#
-#   return(tapply(peak.gene.weight$peak, peak.gene.weight$gene, function(i) {
-#     head(i, n = 1) # select the pairs of peaks and genes
-#   }))
-# }
-
-
-
 #' Load the genomic annotations of an organism
 #'
 #' @keywords internal
@@ -236,8 +157,6 @@ load_database <- function(org = "hg38") {
 
   ifelse (grepl("^mm", org) | org == "mouse", enddb <- "org.Mm.eg.db",
           enddb <- "org.Hs.eg.db")
-
-
   return(enddb)
 }
 
@@ -249,9 +168,7 @@ load_database <- function(org = "hg38") {
 #'
 ensembl_to_symbol <- function(ensembl.ll, org = org) {
 
-  # library(AnnotationDbi)
   org.db <- load_database(org = org)
-  # library(enddb, character.only = T)
 
 
   # Remove the version numbers
@@ -360,8 +277,8 @@ link_peaks <- function(object, peak.assay = "ATAC", expression.assay = "RNA",
                         expression.slot = "data", method = "pearson", gene.coords = NULL, 
                         distance = 5e+05, min.distance = NULL, min.cells = 10, genes.use = NULL, 
                         n_sample = 200, pvalue_cutoff = 0.05, score_cutoff = 0.05, 
-                        gene.id = FALSE, verbose = TRUE) 
-{
+                        gene.id = FALSE, verbose = TRUE) {
+  
   if (!requireNamespace(package = "qlcMatrix", quietly = TRUE)) {
     stop("Please install qlcMatrix: install.packages('qlcMatrix')")
   }
@@ -562,94 +479,4 @@ link_peaks <- function(object, peak.assay = "ATAC", expression.assay = "RNA",
   links <- links[links$pvalue < pvalue_cutoff]
   Signac::Links(object = object[[peak.assay]]) <- links
   return(object)
-}
-
-
-
-#' Calculate the precision, recall, and f-scores of the overlaps between 
-#' two \code{GRanges} objects indicating enhancer-gene relations
-#' 
-#' @export
-#' @rdname intersect_links
-#' @param x The first \code{GRanges} object saving enhancer-gene relations
-#' @param y The second \code{GRanges} object saving enhancer-gene relations
-#' @return Return a \code{data.frame} indicating overlapped \code{GRanges} objects and 
-#' p-values
-intersect_links <- function(x, y) {
-  
-  # Calculate intersections
-  overlap.genes <- intersect(unique(x$gene), unique(y$gene))
-  x.overlap <- x[x$gene %in% overlap.genes]
-  y.overlap <- y[y$gene %in% overlap.genes]
-  query.subject <- GenomicAlignments::findOverlaps(query = x.overlap,
-                                                   subject = y.overlap)
-  # library(Repitools)
-  x.peaks <- Signac::GRangesToString(x)
-  x.genes <- x$gene
-  y.peaks <- Signac::GRangesToString(y)
-  overlap.df <- data.table::rbindlist(lapply(seq_along(query.subject), function(i) {
-    list(x.peak = x.peaks[queryHits(query.subject)[i]], 
-         y.peak = y.peaks[subjectHits(query.subject)[i]], 
-         gene = x.genes[queryHits(query.subject)[i]])
-  }))
-  return(overlap.df)
-}
-
-
-
-#' Calculate the precision, recall, and f-scores of the overlaps between 
-#' two lists of \code{GRanges} objects indicating enhancer-gene relations
-#' 
-#' @export
-#' @rdname intersect_links_in_batch
-#' 
-#' @param link.pairs The first list of \code{GRanges} objects saving enhancer-gene relations
-#' @param ep.ll The second list of \code{GRanges} objects saving enhancer-gene relations
-#' @param only.overlap Only consider the \code{GRanges} objects of which genes were overlapped against databases, 
-#' TRUE by default
-#' @param max.score Which score will be used to select the best query-hit pairs of \code{GRanges} objects,
-#' "precision" by default
-#' @return Returns a \code{data.frame} to indicate the query-hit pairs as well as precision, recall, and f-score
-#' 
-intersect_links_in_batch <- function(link.pairs, ep.ll, 
-                                     only.overlap = FALSE, 
-                                     max.score = "precision") {
- 
-  # Load the peak-gene linkages
-  if (only.overlap) {
-    message ("Evaluating enhancer-gene relations only for the ones overlapped with enhancers ...\n", 
-             "There are in total ", length(link.pairs), " enhancer-gene relations before overlapping.")
-    link.pairs <- link.pairs[unique(queryHits(findOverlaps(link.pairs, do.call("c", ep.ll))))]
-    message ("There are in total ", length(link.pairs), " enhancer-gene relations after overlapping.")
-  }
-  n.pairs <- length(link.pairs)
-  if (n.pairs < 1) {
-    warning ("There is no enhancer-gene linkages input!")
-    if (only.overlap) {
-      warning ("Please note: we only consider the enhancers overlapped with enhancers!\n", 
-               "Enhancers not overlapped with enhancers may still exist.")
-    }
-    return(data.frame(EP = NA, precision = NA, recall = NA, fscore = NA))
-  }
-  message ("There are in total ", n.pairs, " enhancer-gene pairs input.")
-  
-  
-  # Calculate the overlaps
-  message ("Performing enrichment analysis against the enhancer-target pairs in databases ...")
-  score.dt <- data.table::rbindlist(pbapply::pblapply(seq_along(ep.ll), function(i) {
-    ee <- ep.ll[[i]]
-    overlap.genes <- intersect(unique(link.pairs$gene), unique(ee$gene))
-    overlap.query <- link.pairs[link.pairs$gene %in% overlap.genes]
-    overlap.subject <- ee[ee$gene %in% overlap.genes]
-    overlap.hit <- GenomicAlignments::findOverlaps(query = overlap.query, subject = overlap.subject)
-    hit.query <- length(unique(queryHits(overlap.hit)))
-    hit.subject <- length(unique(subjectHits(overlap.hit)))
-    precision <- hit.query / n.pairs
-    recall <- hit.subject / length(ee)
-    fscore <- 2 * precision * recall / (precision + recall)
-    list(EP = i, precision = precision, recall = recall, fscore = fscore)
-  }))
-  score.dt <- na.omit(score.dt)
-  max.scores <- score.dt[which.max(score.dt[[max.score]]),]
-  return(max.scores)
 }

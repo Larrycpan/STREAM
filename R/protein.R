@@ -1,5 +1,4 @@
-#' Given a list of TFs, output associated proteins provided in databases, e.g., 
-#' BioGrid, STRING, IntAct, and CORUM
+#' Given a list of TFs, output associated proteins from BioGrid interacting with these TFs
 #'
 #' @keywords internal
 #' @export
@@ -53,7 +52,8 @@ get_associated_prot <- function(key.TFs = NULL, db = "BioGrid", org = "human") {
     relation.lst <- pbmcapply::pbmclapply(ensembl.lst, mc.cores = parallel::detectCores(), 
                                           function(protein_ids) {
                                             newnames <- protein_ids
-                                            newnames[match(mart_results[ix,'ensembl_peptide_id'], newnames)] <-
+                                            newnames[match(mart_results[ix,'ensembl_peptide_id'], 
+                                                           newnames)] <-
                                               mart_results[ix, 'ensembl_gene_symbol']
                                             newnames
                                           })

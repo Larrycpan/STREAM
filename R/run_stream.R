@@ -1,15 +1,6 @@
-# #' @include cistrome_tools.R
-# #' @include epigenome_tools.R
-# #' @include multiome_tools.R
-# #' @include reguome_tools.R
-# #' @include transcriptome_tools.R
-# #' @include utilities.R
-#'
-# NULL
-
 #' Identify enhancer regulons (eRegulons) from jointly profiled scRNA-seq and scATAC-seq data
 #'
-#' @param obj A \code{Seurat} object composed of both scRNA-sed and scATAC-seq assays
+#' @param obj A \code{Seurat} object composed of both scRNA-seq and scATAC-seq assays
 #' @param top.peaks The number of top-ranked peaks to identify the core part of hybrid biclusters (HBCs),
 #' 3000 by default
 #' @param min.cells The cutoff of minimum number of cells for quality control (QC), 10 by default
@@ -19,35 +10,34 @@
 #' @param c.cutoff The cutoff of consistency during hybrid biclustering process, 1.0 by default
 #' @param n.blocks The cutoff of the maximum number of blocks output by IRIS-FGM, 100 by default
 #' @param min.eRegs The minimum number of enhancer regulons (eRegulons) to output, 100 by default
-#' @param peak.assay The name of the scATAC-seq assay, "ATAC" by default
-#' @param distance The distance cutoff to build enhancer-enhancer relations, 250000 by default
-#' @param BlockOverlap The cutoff of maximum overlap between blocks output by \code{IRIS-FGM}, 0.500 by default
+#' @param peak.assay The scATAC-seq assay, "ATAC" by default
+#' @param distance The distance cutoff to build enhancer-enhancer relations, 5e+05 by default
+#' @param BlockOverlap The cutoff of maximum overlap between blocks output by \code{IRIS-FGM}, 0.50 by default
 #' @param Extension The consistency level to expand a block by \code{IRIS-FGM}, 0.70 by default
 #' @param intra.cutoff The cutoff to calculate pairwise similarity among HBCs associated with the same TFs,
 #' 1.0 by default
 #' @param inter.cutoff The cutoff to compute pairwise similarity among genes in HBCs associated with different TFs,
 #' 0.80 by default
-#' @param peak.cutoff The cutoff to quantify pairwise similarity among enhancers in HBCs, 0.80 by default
+#' @param peak.cutoff The cutoff to quantify pairwise similarity among enhancers in HBCs associated with 
+#' different TFs, 0.80 by default
 #' @param var.genes The number of highly variable genes to predict used to identify the core part of HBCs,
 #' 3000 by default
 #' @param KL Which method to use for measuring the score of HBCs, "min.exp" by default, i.e.,
 #' the smaller one between the numbers of genes and cells in a HBC
 #' @param quantile.cutoff The quantile cutoff of the ratio of HBC cells, where enhancers are accessible,
 #' 4 by default, indicating the top-25% among ranks
-#' @param submod.step The step size of the number of HBCs for submodular optimization, 30 by default
-#' @param filter_peaks_for_cicero Whether filter the peaks based on the Signac results before running Cicero, 
-#' FALSE by default
+#' @param submod.step The step size of, i.e., the number of HBCs to add in each step during iteration,
+#'  for submodular optimization, 30 by default
+#' @param filter_peaks_for_cicero Whether filter the peaks in a neighborhood of the \code{Signac} results 
+#' before running \code{cicero}, FALSE by default
 #' @param candidate.TFs The list of candidate TFs used to identify eRegulons and eGRNs, NULL by default
 #'
 #' @rdname run_stream
-#' @concept run_stream
-#'
 #' @importFrom dplyr %>%
-#'
-#'
 #' @export
+#' 
 #' @return When running on a \code{Seurat} object,
-#' returns a list of enhancer regulons, i.e., eRegulons, saved in a nested list
+#' returns a list of eRegulons saved in a nested list
 run_stream <- function(obj = NULL,
                        candidate.TFs = NULL,
                        peak.assay = "ATAC",
@@ -89,27 +79,10 @@ run_stream <- function(obj = NULL,
     message ("Creating the directory: ", out.dir, " to save the intermediate or final results ...")
     dir.create(out.dir)
   }
-  
-  
-  # # Add libraries
-  # libs <- c(
-  #   "Seurat",
-  #   "Signac",
-  #   "dplyr",
-  #   "monocle3",
-  #   "data.table",
-  #   "Matrix",
-  #   "SummarizedExperiment",
-  #   "SingleCellExperiment",
-  #   "igraph"
-  # )
-  # invisible(require(easypackages))
-  # invisible(libraries(libs))
 
 
   # Quality control
-  invisible(peaks.use <- rownames(obj[[peak.assay]])[as.vector(as.character(BSgenome::seqnames(obj[[peak.assay]]@ranges)) %in%
-                                                       GenomeInfoDb::standardChromosomes(obj[[peak.assay]]@ranges))])
+  invisible(peaks.use <- rownames(obj[[peak.assay]])[as.vector(as.character(BSgenome::seqnames(obj[[peak.assay]]@ranges)) %in% GenomeInfoDb::standardChromosomes(obj[[peak.assay]]@ranges))])
   obj <- subset(obj,
                 features = c(
                   rownames(obj[["RNA"]])[!grepl("\\.", rownames(obj[["RNA"]]))],
@@ -118,7 +91,7 @@ run_stream <- function(obj = NULL,
   message ("Filtered out features not a gene symbol or belonging to non-standard chromosomes,\n",
            "leading to ", nrow(obj[["RNA"]]), " genes and ", nrow(obj[[peak.assay]]), " enhancers.")
   qs::qsave(obj, paste0(out.dir, "Obj_filtered.qsave"))
-  message ("Saved the Seurat object after filtering to file: ", paste0(out.dir, "Obj_filtered.qsave"))
+  message ("Saved the Seurat object after filtering to file: ", paste0(out.dir, "Obj_filtered.qsave."))
 
 
   # Libraries
@@ -170,21 +143,10 @@ run_stream <- function(obj = NULL,
            length(obj[["SCT"]]@var.features), " variable genes) and ",
            nrow(obj[[peak.assay]]), " enhancers (", length(obj[[peak.assay]]@var.features),
            " top-ranked enhancers) to file: ", out.dir,
-           "Obj_var_genes_top_enhs.qsave")
+           "Obj_var_genes_top_enhs.qsave.")
   qs::qsave(obj, paste0(out.dir, "Obj_var_genes_top_enhs.qsave"))
 
 
-  # Annotate enhancers with TF binding sites
-  # if (org == "mm9") {
-  #   url.link <- "https://figshare.com/ndownloader/files/38794152"
-  # } else if (org == "mm10") {
-  #   url.link <- "https://figshare.com/ndownloader/files/38794155"
-  # } else if (org == "hg19") {
-  #   url.link <- "https://figshare.com/ndownloader/files/38794158"
-  # } else {
-  #   url.link <- "https://figshare.com/ndownloader/files/38794161"
-  # }
-  # invisible(RCurl::curlSetOpt(timeout = 2000))
   options(timeout = 2000)
   load(url(url.link))
   message ("Loaded TF binding sites from JASPAR 2022")
@@ -200,7 +162,7 @@ run_stream <- function(obj = NULL,
            "which were saved to file: ", out.dir, "TF_binding_sites_on_enhs.qsave.")
   
   
-  # Identify TFs tentatively binding enhancers based on the PWMs in JASPAR 2022
+  # Identify TFs tentatively binding enhancers based on the position weight matrices (PWMs) in JASPAR 2022
   if (ifPutativeTFs) {
     
     # Get a list of motif position frequency matrices from the JASPAR database
@@ -279,7 +241,7 @@ run_stream <- function(obj = NULL,
   qs::qsave(obj.list, paste0(out.dir, "Obj_list.qsave"))
   qs::qsave(G.list, paste0(out.dir, "Graph_list.qsave"))
   if (length(G.list) < 1) {
-    stop ("No heterogeneous graph was constructed!")
+    stop ("No heterogeneous graph was constructed")
   }
   message ("List containing ", length(obj.list), " Seurat objects were saved to file: ",
            out.dir, "Obj_list.qsave.")
@@ -344,7 +306,7 @@ run_stream <- function(obj = NULL,
     stop ("No seeds was identified")
   }
   message (length(seeds), " seeds are identified for hybrid biclustering,\n",
-           "which were saved to file: ", out.dir, "Seeds.qsave")
+           "which were saved to file: ", out.dir, "Seeds.qsave.")
   qs::qsave(seeds, paste0(out.dir, "Seeds.qsave"))
 
 
@@ -383,7 +345,7 @@ run_stream <- function(obj = NULL,
   }
   
   
-  # Fix HBCs of which no link was discovered
+  # Basic information of the identified HBCs
   gene.range <- sapply(HBCs, "[[", "genes") %>% sapply(., length) %>% range
   peak.range <- sapply(HBCs, "[[", "peaks") %>% sapply(., length) %>% range
   cell.range <- sapply(HBCs, "[[", "cells") %>% sapply(., length) %>% range
@@ -400,7 +362,6 @@ run_stream <- function(obj = NULL,
   rm(TFGene.pairs)
   rm(atac.list)
   rm(atac.dis)
-  # rm(HBCs)
   rm(bound.TFs)
 
 
@@ -417,6 +378,8 @@ run_stream <- function(obj = NULL,
                           peak.assay = peak.assay) # submodular optimization
     rm(sim.m)
     submod.HBCs <- submod.obj$eRegs
+    message ("HBC scores after submodular optimization were written to file: ", 
+             out.dir, "Submodular_scores.qsave.")
     qs::qsave(submod.obj$obj, paste0(out.dir, "Submodular_scores.qsave"))
     
     
@@ -430,34 +393,32 @@ run_stream <- function(obj = NULL,
   }
 
 
-  submod.HBCs
+  return(submod.HBCs)
 }
 
 
 
-#' Get a simulated jointly profiled scRNA-seq and scATAC-seq data in which
-#' several enhancer regulons (eRegulons)
-#' are contained
+#' Simulate a jointly profiled scRNA-seq and scATAC-seq dataset in which
+#' several enhancer regulons (eRegulons) are contained
 #'
 #' @importFrom dplyr %>%
 #'
 #' @export
 #' @rdname create_rna_atac
 #'
-#' @param obj a \code{Seurat} object used as the prototype to generate simulated dataset
-#' other is \code{GRanges} list
-#' @param ntfs the number of eRegulons (TFs) to include in the simulated dataset
-#' @param ngenes the average number of genes in an eRegulon
-#' @param ncells the average number of cells in an eRegulon
-#' @param org the organism, e.g., hg38
-#' @param atac.assay the assay to save the scATAC-seq data
-#' @param gene.links the average number of enhancers linked to each gene in an eRegulon
-#' @param distance the maximum distance between a gene and its linked enhancers
+#' @param obj A \code{Seurat} object used as the prototype to generate simulated dataset
+#' @param ntfs The number of eRegulons (TFs) to include in the simulated dataset
+#' @param ngenes The average number of genes in an eRegulon
+#' @param ncells The average number of cells in an eRegulon
+#' @param org The organism, hg38 by default
+#' @param atac.assay The scATAC-seq assay
+#' @param gene.links The average number of enhancers linked to each gene in an eRegulon
+#' @param distance The maximum distance between a gene and its linked enhancers
 #' @param all.genes the number of genes in the simulated \code{Seurat} object
-#' @param all.enhs the number of enhancers in the simulated \code{Seurat} object
-#' @param all.cells the number of cells in the simulated \code{Seurat} object
+#' @param all.enhs The number of enhancers in the simulated \code{Seurat} object
+#' @param all.cells The number of cells in the simulated \code{Seurat} object
 #'
-#' @return returns a list composed of a eRegulon list and a \code{Seurat} object
+#' @return Returns a list composed of an eRegulon list and a \code{Seurat} object
 create_rna_atac <- function(obj = NULL, ntfs = 5, ngenes = 100,
                             ncells = 100, all.genes = 1000, all.enhs = 3000, all.cells = 1000,
                             org = "hg38", atac.assay = "ATAC", gene.links = 2,
@@ -465,15 +426,10 @@ create_rna_atac <- function(obj = NULL, ntfs = 5, ngenes = 100,
                             ) {
 
   # Parameters
-  message ("Loading TF binding sites from JASPAR ...")
+  message ("Loading TF binding sites from JASPAR 2022 ...")
   load(url(url.link))
   sites <- TFBS.list[[org]]
-  # sites$TF <- strsplit(sites$TF, split = "::") %>% pbmcapply::pbmclapply(., mc.cores = parallel::detectCores(),
-  #                                                                        function(x) {
-  #   return(tail(x, n = 1))
-  # }) %>% unlist
   rm(TFBS.list)
-  # quiet(ifelse (grepl("^mm", org), sites <- TFBS.list$Mouse, sites <- TFBS.list$Human))
   message ("There are ", length(unique(sites$TF)), " TFs from the JASPAR 2022 database.\n",
            ntfs, " eRegulons regulated by different TFs will be generated.\n",
            "The Seurat object contains ", nrow(obj[["RNA"]]),
@@ -489,14 +445,12 @@ create_rna_atac <- function(obj = NULL, ntfs = 5, ngenes = 100,
 
 
   # Select target genes
-  # require(dorothea)
   if (grepl("^mm", org)) {
     tf.target <- dorothea::dorothea_mm[, c("tf", "target")]
   } else {
     tf.target <- dorothea::dorothea_hs[, c("tf", "target")]
   }
   message ("Loaded ", length(unique(tf.target$tf)), " TFs collected in DoRothEA database.")
-  # require(dplyr)
   tf.target.overlap <- tf.target[tf.target$tf %in% tf.lst,] %>% split(., .$tf)
   message ("There are ", length(names(tf.target.overlap)),
            " common TFs between JASPAR and DoRothEA.")
@@ -551,7 +505,6 @@ create_rna_atac <- function(obj = NULL, ntfs = 5, ngenes = 100,
 
 
   # Initializes the progress bar
-  # require(parallel)
   pb <- utils::txtProgressBar(min = 0,      # Minimum value of the progress bar
                        max = length(en.regs), # Maximum value of the progress bar
                        style = 3,    # Progress bar style (also available style = 1 and style = 2)
@@ -629,7 +582,7 @@ create_rna_atac <- function(obj = NULL, ntfs = 5, ngenes = 100,
   message ("The simulated scRNA-seq and scATAC-seq data contains:\n",
            "1. Hybrid biclusters (HBCs) in nested list,\n",
            "2. Seurat object containing the scRNA-seq and scATAC-seq data.")
-  list(HBCs = hbc.lst, Seurat = simul.obj)
+  return( list(HBCs = hbc.lst, Seurat = simul.obj) )
 }
 
 
@@ -643,17 +596,17 @@ create_rna_atac <- function(obj = NULL, ntfs = 5, ngenes = 100,
 #' @export
 #' @rdname get_cts_en_GRNs
 #'
-#' @param obj An \code{Seurat} object used to get the eRegulons, NULL by default
-#' @param celltype The metadata column indicating the cell types or clusters, NULL by default
-#' @param en.regs A list of eRegulons, NULL by default
+#' @param obj An \code{Seurat} object
+#' @param celltype The metadata column indicating the cell types or clusters, "seurat_clusters" by default
+#' @param en.regs A list of eRegulons
 #' @param peak.assay The chromatin accessibility assay, "ATAC" by default
 #' @param rna.dims The number of dimensions for RNA dimension reduction, 50 by default
 #' @param atac.dims The number of dimensions for ATAC dimension reduction, 50 by default
 #' @param out.dir The directory to save the intermediate results or final results, "./" by default
 #' @param padj.cutoff The cutoff of adjusted p-value of hyper-geometric test, 0.05 by default
-#' @return Returns a list of eGRNs saved in \code{GRanges} object
+#' @return Returns a list of eGRNs in each cell type saved in \code{GRanges} object
 #'
-get_cts_en_GRNs <- function(obj = NULL, celltype = NULL,
+get_cts_en_GRNs <- function(obj = NULL, celltype = "seurat_clusters",
                             en.regs = NULL, peak.assay = "ATAC",
                             rna.dims = 50, atac.dims = 50,
                             padj.cutoff = 0.05,
@@ -766,13 +719,13 @@ get_cts_en_GRNs <- function(obj = NULL, celltype = NULL,
 #' @export
 #' @rdname get_cts_en_regs
 #'
-#' @param obj An \code{Seurat} object used to get the eRegulons, NULL by default
-#' @param celltype The metadata column indicating the cell types or clusters, NULL by default
-#' @param cts.en.grns Cell-type-specific eGRNs, NULL by default
+#' @param obj An \code{Seurat} object
+#' @param celltype The metadata column indicating the cell types or clusters, "seurat_clusters" by default
+#' @param cts.en.grns Cell-type-specific eGRNs
 #' @param peak.assay The chromatin accessibility assay, "ATAC" by default
-#' @param de.genes A list of differentially expressed genes (DEGs), NULL by default
+#' @param de.genes A list of differentially expressed genes (DEGs)
 #' @param out.dir The directory to save the intermediate results or final results, "./" by default
-#' @param accessibility whether perform differential accessibility analysis, FALSE by default
+#' @param accessibility Whether perform differential accessibility analysis, FALSE by default
 #' @param padj.cutoff The cutoff of adjusted p-values of differential expression, 0.05 by default
 #'
 #' @return Returns a list of cell-type-specific eRegulons and plot dotplot-heatmap
@@ -843,4 +796,211 @@ get_cts_en_regs <- function(obj = NULL, peak.assay = "ATAC", de.genes = NULL,
   
   
   return(cts.en.regs)
+}
+
+
+
+#' Calculate the precision, recall, and f-scores of overlaps between 
+#' two \code{GRanges} objects indicating enhancer-gene relations
+#' 
+#' @import dplyr
+#' @export
+#' @rdname intersect_enhancer_gene_relations
+#' 
+#' @param x The first \code{GRanges} object saving enhancer-gene relations
+#' @param y The second \code{GRanges} object saving enhancer-gene relations
+#' @return Return a \code{data.frame} indicating overlapped \code{GRanges} objects and 
+#' p-values
+#' 
+intersect_enhancer_gene_relations <- function(x, y) {
+  
+  # Calculate intersections
+  overlap.genes <- intersect(unique(x$gene), unique(y$gene))
+  x.overlap <- x[x$gene %in% overlap.genes]
+  y.overlap <- y[y$gene %in% overlap.genes]
+  query.subject <- GenomicAlignments::findOverlaps(query = x.overlap,
+                                                   subject = y.overlap)
+  # library(Repitools)
+  x.peaks <- Signac::GRangesToString(x)
+  x.genes <- x$gene
+  y.peaks <- Signac::GRangesToString(y)
+  overlap.df <- data.table::rbindlist(lapply(seq_along(query.subject), function(i) {
+    list(x.peak = x.peaks[queryHits(query.subject)[i]], 
+         y.peak = y.peaks[subjectHits(query.subject)[i]], 
+         gene = x.genes[queryHits(query.subject)[i]])
+  }))
+  return(overlap.df)
+}
+
+
+
+#' Calculate the precision, recall, and f-scores of the overlaps between 
+#' two lists of \code{GRanges} objects indicating enhancer-gene relations
+#' 
+#' @export
+#' @rdname intersect_enhancer_gene_relations_in_batch
+#' 
+#' @param link.pairs The first list of \code{GRanges} objects saving enhancer-gene relations
+#' @param ep.ll The second list of \code{GRanges} objects saving enhancer-gene relations
+#' @param only.overlap Only consider the \code{GRanges} objects of which genes were overlapped against databases, 
+#' TRUE by default
+#' @param max.score Which score will be used to select the best query-hit pairs of \code{GRanges} objects,
+#' "precision" by default
+#' @return Returns a \code{data.frame} to indicate the query-hit pairs as well as precision, recall, and f-score
+#' 
+intersect_enhancer_gene_relations_in_batch <- function(link.pairs, ep.ll, 
+                                                       only.overlap = FALSE, 
+                                                       max.score = "precision") {
+  
+  # Load the peak-gene linkages
+  if (only.overlap) {
+    message ("Evaluating enhancer-gene relations only for the ones overlapped with enhancers ...\n", 
+             "There are in total ", length(link.pairs), " enhancer-gene relations before overlapping.")
+    link.pairs <- link.pairs[unique(queryHits(findOverlaps(link.pairs, do.call("c", ep.ll))))]
+    message ("There are in total ", length(link.pairs), " enhancer-gene relations after overlapping.")
+  }
+  n.pairs <- length(link.pairs)
+  if (n.pairs < 1) {
+    warning ("There is no enhancer-gene linkages input!")
+    if (only.overlap) {
+      warning ("Please note: we only consider the enhancers overlapped with enhancers!\n", 
+               "Enhancers not overlapped with enhancers may still exist.")
+    }
+    return(data.frame(EP = NA, precision = NA, recall = NA, fscore = NA))
+  }
+  message ("There are in total ", n.pairs, " enhancer-gene pairs input.")
+  
+  
+  # Calculate the overlaps
+  message ("Performing enrichment analysis against the enhancer-target pairs in databases ...")
+  score.dt <- data.table::rbindlist(pbapply::pblapply(seq_along(ep.ll), function(i) {
+    ee <- ep.ll[[i]]
+    overlap.genes <- intersect(unique(link.pairs$gene), unique(ee$gene))
+    overlap.query <- link.pairs[link.pairs$gene %in% overlap.genes]
+    overlap.subject <- ee[ee$gene %in% overlap.genes]
+    overlap.hit <- GenomicAlignments::findOverlaps(query = overlap.query, subject = overlap.subject)
+    hit.query <- length(unique(queryHits(overlap.hit)))
+    hit.subject <- length(unique(subjectHits(overlap.hit)))
+    precision <- hit.query / n.pairs
+    recall <- hit.subject / length(ee)
+    fscore <- 2 * precision * recall / (precision + recall)
+    list(EP = i, precision = precision, recall = recall, fscore = fscore)
+  }))
+  score.dt <- na.omit(score.dt)
+  max.scores <- score.dt[which.max(score.dt[[max.score]]),]
+  return(max.scores)
+}
+
+
+
+#' Calculate the p-values of overlaps between two \code{GRanges} objects
+#' 
+#' @export
+#' @rdname intersect_peaks
+#' 
+#' @param x The first \code{GRanges} object or \code{data.frame}
+#' @param y The first \code{GRanges} object or \code{data.frame}
+#' @param n.times The number of times of permutation, 1000 by default
+#' @param alternative The direction of alternative hypothesis, "greater" by default
+#' @return Return a numeric p-value
+#'
+intersect_peaks <- function(x, y, n.times = 100, alternative = "greater") {
+  
+  # Calculate intersections
+  message ("Perform significance test between two GRange objects composed of ", 
+           length(x), " and ", length(y), " peaks.")
+  regioneR::overlapPermTest(A = x, B = y, ntimes = n.times, alternative = alternative)
+}
+
+
+
+#' Calculate the p-values of overlaps between two lists of \code{GRanges} objects
+#' 
+#' @export
+#' @rdname intersect_peaks_in_batch
+#' 
+#' @param x.ll The first list of \code{GRanges} objects
+#' @param y.ll The first list of \code{GRanges} objects
+#' @param n.times The number of times of permutation, 1000 by default
+#' @return Returns a \code{data.frame} composed of the IDs of significantly overlapped 
+#' \code{GRanges} objects and p-values
+#'
+intersect_peaks_in_batch <- function(x.ll, y.ll, n.times = 100) {
+  
+  message ("Perform significance test between two lists composed of ", 
+           length(x.ll), " and ", length(y.ll), " GRange objects.")
+  pval.df <- data.frame(numeric(), numeric(), 
+                        numeric())
+  for (i in seq_along(x.ll)) {
+    for (j in seq_along(y.ll)) {
+      pval <- suppressMessages(intersect_peaks(x = x.ll[[i]], y = y.ll[[j]], n.times = n.times))
+      pval.df <- rbind(pval.df, c(i, j, pval))
+    }
+  }
+  message ("Finished performing enrichment analysis between two lists.\n", 
+           nrow(pval.df), " pairs of peak lists have been compared.")
+  colnames(pval.df) <- c("query", "subject", "pval")
+  return(pval.df)
+}
+
+
+
+#' Perform enrichment analysis for eRegulon genes against gene ontology (GO) terms 
+#' and KEGG pathways
+#'
+#' @export
+#' @rdname enrich_genes
+#' 
+#' @param regs The list of enhancer regulons (eRegulons) or cell-type-specific eRegulons
+#' @param dbs The list of databases to run enrichment analysis, c("GO", "KEGG") by default
+#' @param org The organism, "human" by default
+#' 
+enrich_genes <- function(regs = NULL, dbs = c("GO", "KEGG"), 
+                         org = "human" ) {
+  
+  # Determine databases
+  genes.ll <- sapply(regs, "[[", "genes")
+  databases <- c()
+  if ("GO" %in% dbs) {
+    message ("Loading GO databases ...")
+    databases <- c("GO_Molecular_Function_2018",
+                   "GO_Cellular_Component_2018",
+                   "GO_Biological_Process_2018")
+  }
+  if ("KEGG" %in% dbs) {
+    if (org == "mouse") {
+      databases <- c(databases, "KEGG_2019_Mouse")
+    } else {
+      databases <- c(databases, "KEGG_2019_Human")
+    }
+    message ("Loading KEGG database of ", org, " ...")
+  }
+  
+  
+  # Run enrichment analyses
+  message ("Running enrichment analyses for ", length(genes.ll), " gene lists ...")
+  quiet(require(enrichR))
+  enriched <- pbmcapply::pbmclapply(genes.ll, 
+                                    mc.cores = 4, 
+                                    function(x) {
+                                      enrichr(genes = x, databases = databases)
+                                    })
+  names(enriched) <- seq_along(genes.ll)
+  
+  
+  # Parse the results
+  message ("Merging enrichment analyses results ...")
+  processed <- pbmcapply::pbmclapply(databases, 
+                                     mc.cores = parallel::detectCores(), 
+                                     function(x) {
+                                       message ("Preparing enrichment analysis results for ", x, " ...")
+                                       x.prosessed <- Reduce("rbind", lapply(seq_along(enriched), function(i) {
+                                         cbind(Id = rep(names(enriched)[i], nrow(enriched[[i]][[x]])), enriched[[i]][[x]])
+                                       }) )
+                                     })
+  names(processed) <- databases
+  message ("There are ", paste(sapply(processed, nrow), collapse = ", "), 
+           " terms/pathways for ", paste(names(processed), collapse = ", "), 
+           ".")
+  return(processed)
 }

@@ -18,7 +18,7 @@ find_TFBS <- function(peaks, TFBS.list, org = "hg38", candidate.TFs = NULL) {
   overlap <- GenomicAlignments::findOverlaps(query = Signac::StringToGRanges(peaks),
                                              subject = jaspar.sites$peak)
   if (length(overlap) < 1) {
-    stop ("No TF is found to bind the enhancers.")
+    stop ("No TF is found to bind the enhancers")
   }
   TF.peak.df <- do.call("rbind", pbmcapply::pbmclapply(seq_along(overlap), function(x) {
     return(data.frame(TF = jaspar.sites$TF[overlap@to[x]], peak = peaks[overlap@from[x]]))
@@ -30,8 +30,6 @@ find_TFBS <- function(peaks, TFBS.list, org = "hg38", candidate.TFs = NULL) {
   # nest list, where the names are peaks and the elements are TF lists
 
   TF.dfs <- split(x = TF.peak.df$peak, f = TF.peak.df$TF)
-
-
   list(CRE = peak.dfs, TF = TF.dfs)
 }
 

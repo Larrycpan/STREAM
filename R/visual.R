@@ -61,7 +61,6 @@ get_multi_hist <- function(df = NULL, ylab = "Frequency",
 #' 1. The number of enhancers linked to each gene
 #' 2. The rank of enhancers linked to each gene
 #' 
-#' @keywords internal
 #' @import dplyr
 #' @export
 #' @rdname plot_stats_genes_and_enhs
@@ -98,7 +97,6 @@ plot_stats_genes_and_enhs <- function(obj = NULL, peak.assay = "ATAC",
   
   
   # Calculate the rank of enhancers among all that linked to a gene
-  # rank.enhs <- unlist(pbapply::pblapply(en.regs[1:10], 
   rank.enhs <- unlist(pbmcapply::pbmclapply(en.regs, mc.cores = max(1, parallel::detectCores() / 3),
                                      function(x) {
                                        unlist(sapply(split(x$links, x$links$gene), function(y) {
@@ -149,7 +147,7 @@ get_dotplot_heatmap <- function(df = NULL,
   # Parameters
   message ("Preparing to generate dortplot-heatmap for ", 
            length(unique(df[, 1])), " rows and ", length(unique(df[, 2])), 
-           " columns.\n")
+           " columns.")
   
   
   # Prepare sizes for dotplots
@@ -221,21 +219,33 @@ get_dotplot_heatmap <- function(df = NULL,
 #' @import dplyr
 #' 
 #' @param obj A \code{Seurat} object, NULL by default
-#' @param cts.en.regs The list of cell-type-specific eRegulons, NULL by default
-#' @param n.regs The number of top-ranked enhancer regulons (eRegulons) for plotting, 5 by default
+#' @param cts.en.regs The list of cell-type-specific enhancer regulons (eRegulons)
+#' @param n.regs The number of top-ranked eRegulons for plotting, 5 by default
 #' @param dot What dot sizes represent, "AC" by default
 #' @param peak.assay The assay denoting chromatin accessibility, "ATAC" by default
-#' @param celltypes The list of cell types arranged in an order defined by users, NULL by default
-#' @param celltype.col The metadata column indicating cell types, "celltype" by default
-#' @param ht.colours Color list used to generate the heatmap, 
+#' @param celltypes The list of cell types arranged in an order defined by users
+#' @param celltype.col The metadata column indicating cell types, "seurat_clusters" by default
+#' @param ht.colours Color list used to define the gradients of the heatmap, 
+#' c(
+#' grDevices::colorRampPalette(c("#99D5FF", "#E8F9FD"))(3),
+#' "#fffaf7",
+#' grDevices::colorRampPalette(c("#ffe4e1", "#ee7261"))(3)
+#' )
+#' by default
+#' @param ht.breaks The breaks marked on the legend of heatmap colors
+#' @param font.size The font size of legends
+#' @param text.font The text font of legends
+#' @param angle The angle of labels of the x-axis in the heatmap, 30 by default
+#' @param vjust Adjustment of positions in the vertical direction, 1 by default 
+#' @param hjust Adjustment of positions in the horizontal direction, 1 by default
+#' @param celltype.colours The list of colors of cell types in the row annotations
 #' 
 plot_dotplot_heatmap <- function(obj = NULL, cts.en.regs = NULL,
-                                 n.regs = 5, celltype.col = "celltype",
+                                 n.regs = 5, celltype.col = "seurat_clusters",
                                  dot = "AC", peak.assay = "ATAC",
                                  ht.colours = c(
                                    grDevices::colorRampPalette(c("#99D5FF", "#E8F9FD"))(3),
                                    "#fffaf7",
-                                   # grDevices::colorRampPalette(c("#FFD8A9", "#FFAE6D"))(2), 
                                    grDevices::colorRampPalette(c("#ffe4e1", "#ee7261"))(3)
                                  ),
                                  ht.breaks = NULL,
@@ -311,15 +321,7 @@ plot_dotplot_heatmap <- function(obj = NULL, cts.en.regs = NULL,
   }
   rownames(dot.m) <- rownames(heat.m)
   
-  
-  # Rename matrices
-  # rownames(heat.m) <- paste0("eR", rownames(heat.m),
-  #                            "_",
-  #                            sapply(cts.en.regs[rownames(heat.m)],
-  #                                   "[[", "TF"))
-  # rownames(dot.m) <- rownames(heat.m)
-  # colnames(heat.m) <- celltypes
-  # colnames(dot.m) <- celltypes
+
   heat.summ <- Matrix::summary(as(heat.m, "sparseMatrix"))
   heat.summ <- cbind(heat.summ, sapply(1:nrow(heat.summ), function(i) {
     dot.m[heat.summ[i, 1], heat.summ[i, 2]]
@@ -384,11 +386,11 @@ df_to_igraph_net <- function(df = NULL, color.df = NULL, vertex.frame.width = 0.
   # Parameters
   message ("The data frame contains ", length(unique(df$TF)), 
            " TFs, ", length(unique(unique(df$enhancer))), " enhancers, and ", 
-           length(unique(df$gene)), " genes.\n")
+           length(unique(df$gene)), " genes.")
   if (length(setdiff(unique(df$TF), names(color.df))) > 0 | 
       is.null(color.df)) {
     message ("There are ", length(unique(df$TF)), " TFs but only ",
-          length(unique(names(color.df))), " colors are given.\n", 
+          length(unique(names(color.df))), " colors are given.", 
           "Using random color list ...")
     color.df <- setNames(get_random_colours(n = length(unique(df$TF))), 
                         unique(df$TF))
@@ -403,7 +405,7 @@ df_to_igraph_net <- function(df = NULL, color.df = NULL, vertex.frame.width = 0.
   links$weight <- max.width * (links$weight - min(links$weight) + 1e-04 ) / 
     (max(links$weight) - min(links$weight) + 1e-04)
   nodes <- apply(df[, 1:3], 2, unique) %>% unlist %>% unique
-  message ("There are ", nrow(links), " linkages and ", length(nodes), " nodes.\n")
+  message ("There are ", nrow(links), " linkages and ", length(nodes), " nodes.")
   
   
   # Function for plotting an elliptical node
@@ -429,10 +431,7 @@ df_to_igraph_net <- function(df = NULL, color.df = NULL, vertex.frame.width = 0.
   
   
   # Colors
-  # require(igraph)
-  # require(rTRM)
   network <- graph_from_data_frame(d = links, vertices = nodes, directed = FALSE )
-  # E(network)$weight <- links$weight
   tf.color <- color.df[unique(df$TF)]
   tf.shape <- rep(tf.shape, length(unique(df$TF)))
   enh.shape <- rep(enh.shape, length(unique(df$enhancer)))
@@ -471,7 +470,6 @@ df_to_igraph_net <- function(df = NULL, color.df = NULL, vertex.frame.width = 0.
     plot(network, vertex.color = vertex.color, vertex.frame.width = vertex.frame.width, 
          vertex.frame.color = vertex.frame.color, edge.curved = edge.curved, edge.color = edge.color, 
          vertex.label.family = vertex.label.family, vertex.label.color = vertex.label.color, 
-         # edge.width = E(network)$weight,
          vertex.shape = vertex.shape, vertex.size = vertex.size, vertex.label = vertex.label,
          layout = rTRM::layout.concentric(network, concentric = list(names(tf.color), 
                                                                      names(enh.color), 
@@ -479,10 +477,8 @@ df_to_igraph_net <- function(df = NULL, color.df = NULL, vertex.frame.width = 0.
   } else if (layout == "fr") {
     plot(network, vertex.color = vertex.color, vertex.frame.width = vertex.frame.width, 
          vertex.frame.color = vertex.frame.color, edge.curved = edge.curved, edge.color = edge.color, 
-         # edge.width = E(network)$weight,
          vertex.label.family = vertex.label.family, vertex.label.color = vertex.label.color, 
          vertex.shape = vertex.shape, vertex.size = vertex.size, vertex.label = vertex.label,
-         # layout = igraph::layout_with_fr
          layout = igraph::layout_with_fr(network,
                                          minx = rep(-Inf, igraph::vcount(network)),
                                          maxx = rep(Inf, igraph::vcount(network)),
@@ -492,7 +488,6 @@ df_to_igraph_net <- function(df = NULL, color.df = NULL, vertex.frame.width = 0.
   } else if (layout == "lgl") {
     plot(network, vertex.color = vertex.color, vertex.frame.width = vertex.frame.width, 
          vertex.frame.color = vertex.frame.color, edge.curved = edge.curved, edge.color = edge.color, 
-         # edge.width = E(network)$weight,
          vertex.label.family = vertex.label.family, vertex.label.color = vertex.label.color, 
          vertex.shape = vertex.shape, vertex.size = vertex.size, vertex.label = vertex.label,
          layout = igraph::layout_with_lgl
@@ -540,12 +535,12 @@ df_to_igraph_net <- function(df = NULL, color.df = NULL, vertex.frame.width = 0.
          vertex.shape = vertex.shape, vertex.size = vertex.size, vertex.label = vertex.label,
          layout = igraph::layout_with_graphopt )
   }
-
   dev.off()
 }
 
 
 
+#' Plot an enhancer-driven gene regulatory network (eGRN)
 #' 
 #' @keywords internal
 #' 
@@ -554,8 +549,8 @@ df_to_igraph_net <- function(df = NULL, color.df = NULL, vertex.frame.width = 0.
 #' @import dplyr
 #' 
 #' @param en.grn The enhancer gene regulatory network (eGRN) composed of \code{GRanges}, cell type, and cells
-#' @param peak.assay The assay of scATAC-seq, ATAC by default
-#' @param obj The \code{Seurat} object that was used to generate the enhancer gene regulatory networks (eGRNs)
+#' @param peak.assay The scATAC-seq assay
+#' @param obj A \code{Seurat} object
 #' @param n.links The cutoff of the number of TF-enhancer-gene relations for each TF to showcase.
 #' We retain the top-ranked relations in decreasing order of the number of cells, where the genes including the 
 #' ones encoding the TFs are expressed, while the enhancers are accessible, 50 by default
@@ -563,7 +558,7 @@ df_to_igraph_net <- function(df = NULL, color.df = NULL, vertex.frame.width = 0.
 #' @param path The path to save the image file, "./" by default
 #' @param format The format of the image file, ".png" by default
 #' @param n.TFs The maximum number of top-ranked TFs to generate eGRN plot, 10 by default
-#' @param TFs The list of TFs for plotting, NULL by default
+#' @param TFs The list of TFs for plotting
 #' @param layout The layout for plotting networks, "fr" by default
 #' 
 plot_eGRN <- function(en.grn = NULL, obj = NULL, peak.assay = "ATAC", n.links = 20, 
@@ -738,7 +733,7 @@ prepare_coverage_plot <- function(object = NULL, links = NULL,
 
 
 
-#' Generate coverage plot of an interval across different cell types
+#' Generate coverage plot within an interval across different cell types
 #' 
 #' @export
 #' @rdname get_coverage_plot
@@ -766,6 +761,7 @@ prepare_coverage_plot <- function(object = NULL, links = NULL,
 #' @param idents Which identities to include in the plot. Default is all identities.
 #' @param extend.upstream Number of bases to extend the region upstream.
 #' @param extend.downstream Number of bases to extend the region downstream.
+#' 
 get_coverage_plot <- function(object = NULL, region = NULL, 
                               features = NULL, links = FALSE, 
                               ranges.group.by = "seurat_cluster", peaks = FALSE, 
@@ -774,12 +770,6 @@ get_coverage_plot <- function(object = NULL, region = NULL,
                               extend.downstream = 0,
                               colors = NULL, size = 10) {
   
-  # Plotting
-  # if (is.null(colors)) {
-  #   colors <- setNames(RColorBrewer::brewer.pal(length(unique(object@meta.data[, ranges.group.by])), 
-  #                                                       "Set1"), 
-  #                      unique(object@meta.data[, ranges.group.by]))
-  # }
   Seurat::DefaultAssay(object) <- peak.assay
   Seurat::Idents(object) <- setNames(object@meta.data[, ranges.group.by], 
                                      colnames(object))
