@@ -298,7 +298,7 @@ SFP_seeding <- function(motif.obj = NULL, G.list, obj.list, bound.TFs, binding.C
                         TFGene.pairs, rna.dis, atac.dis, KL = "min.exp", P = NULL,
                         Q = NULL, score.cutoff = 1, TOP_TFS = Inf, ifWeighted = TRUE,
                         quantile.cutoff = 4, peak.assay = "ATAC",
-                        ifPutativeTFs = FALSE, padj.cutoff = 0.05) {
+                        ifPutativeTFs = FALSE, padj.cutoff = 0.05 ) {
 
   # Identify enhancer-gene relations to construct seeds
   seed.es <- Reduce(rbind, pbmcapply::pbmclapply(seq_along(obj.list), function(i) {
@@ -733,6 +733,9 @@ expand_HBC <- function(HBC, cand.genes, cand.peaks, quantile.cutoff = 4,
                        rna.m = rna.m, atac.m = atac.m, closure = closure,
                        G = G, KL = KL, Q = Q, P = P, ego.order = ego.order,
                        min.cells = min.cells) # expand the core part of the HBC
+    if (is.null(HBC)) {
+      return(NULL)
+    }
     HBC <- expand_fuzzy(HBC = HBC, G = G, cand.genes = cand.genes, cand.peaks = cand.peaks,
                         m = rna.dis > 0, mm = atac.dis, rna.m = rna.m, atac.m = atac.m,
                         g.cutoff = c.cutoff, KL = KL, closure = closure,
@@ -745,6 +748,9 @@ expand_HBC <- function(HBC, cand.genes, cand.peaks, quantile.cutoff = 4,
   HBC$genes <- unique(HBC.ends[, 2])
   HBC$peaks <- unique(HBC.ends[, 1])
   HBC.links <- Signac::StringToGRanges(HBC.ends[, 1])
+  if (is.null(HBC) | length(HBC.links) < 1) {
+    return(NULL)
+  }
   GenomicRanges::mcols(HBC.links)$gene <- HBC.ends[, 2]
   HBC$links <- HBC.links
   HBC$weight <- sum(atac.dis[HBC$peaks, HBC$cells]) / sum(rna.dis[HBC$genes, HBC$cells])
@@ -859,7 +865,6 @@ hybrid_biclust <- function(seeds = NULL, rna.list = NULL, atac.list = NULL,
                        width = 50,   # Progress bar width. Defaults to getOption("width")
                        char = "=")   # Character used to create the bar
 
-
   for (i in seq_along(seeds)) {
     HBC <- seeds[[i]]
     Sys.sleep(0.1) # Remove this line and add your code
@@ -873,7 +878,6 @@ hybrid_biclust <- function(seeds = NULL, rna.list = NULL, atac.list = NULL,
                     peak.cutoff = peak.cutoff)) { # Ineligible
       next
     }
-    id <- id + 1
 
 
     HBC <- expand_HBC(HBC = HBC, cand.peaks = binding.CREs[[HBC$TF]] ,
@@ -884,9 +888,10 @@ hybrid_biclust <- function(seeds = NULL, rna.list = NULL, atac.list = NULL,
                       ego.order = ego.order, closure = closure,
                       quantile.cutoff = quantile.cutoff,
                       KL = KL, Q = Q, P = P, min.cells = min.cells)
-    if (length(HBC$genes) < 3) {
+    if (is.null(HBC) | length(HBC$genes) < 3) {
       next
     }
+    id <- id + 1
     HBC$seed <- idd
     HBCs[[id]] <- HBC
    }

@@ -1,5 +1,13 @@
 #' Identify enhancer regulons (eRegulons) from jointly profiled scRNA-seq and scATAC-seq data
-#'
+#' 
+#' @description Most transcriptional regulation analyses, including prediction of transcription factor 
+#' (TF) binding sites and identification of enhancer-gene relations require the discovery of enhancer 
+#' regulons (eRegulons), which are active in a set of cells. A TF with its set of target enhancers 
+#' and target genes is called an eRegulon. This function takes as input a \code{Seurat} 
+#' object (containing both scRNA-seq and scATAC-seq) and then simultaneously identifies eRegulons as well 
+#' as the cell sets where eRegulons are active. In addition, this function determines the number of eRegulons 
+#' in a dataset by submodular optimization.
+#' 
 #' @param obj A \code{Seurat} object composed of both scRNA-seq and scATAC-seq assays
 #' @param top.peaks The number of top-ranked peaks to identify the core part of hybrid biclusters (HBCs),
 #' 3000 by default
@@ -38,6 +46,14 @@
 #' 
 #' @return When running on a \code{Seurat} object,
 #' returns a list of eRegulons saved in a nested list
+#' 
+#' @references Li, Y., Ma, A., Wang, Y., Wang, C., Chen, S., Fu, H., Liu, B. and Ma, Q., 2022. 
+#' Enhancer-driven gene regulatory networks inference from single-cell RNA-seq and ATAC-seq data. 
+#' bioRxiv, pp.2022-12.
+#' @references Chang, Y., Allen, C., Wan, C., Chung, D., Zhang, C., Li, Z. and Ma, Q., 2021. 
+#' IRIS-FGM: an integrative single-cell RNA-Seq interpretation system for functional gene module analysis. 
+#' Bioinformatics, 37(18), pp.3045-3047.
+#' 
 run_stream <- function(obj = NULL,
                        candidate.TFs = NULL,
                        peak.assay = "ATAC",
@@ -149,7 +165,7 @@ run_stream <- function(obj = NULL,
 
   options(timeout = 2000)
   load(url(url.link))
-  message ("Loaded TF binding sites from JASPAR 2022")
+  message ("Loaded TF binding sites from JASPAR 2022.")
   TF.CRE.pairs <- find_TFBS(peaks = rownames(obj[[peak.assay]]),
                             TFBS.list = TFBS.list, org = org, 
                             candidate.TFs = candidate.TFs)
@@ -399,8 +415,8 @@ run_stream <- function(obj = NULL,
 
 
 #' Simulate a jointly profiled scRNA-seq and scATAC-seq dataset in which
-#' several enhancer regulons (eRegulons) are contained
-#'
+#' several enhancer regulons (eRegulons) are contained. 
+#' 
 #' @importFrom dplyr %>%
 #'
 #' @export
@@ -427,6 +443,7 @@ create_rna_atac <- function(obj = NULL, ntfs = 5, ngenes = 100,
 
   # Parameters
   message ("Loading TF binding sites from JASPAR 2022 ...")
+  options(timeout = 2000)
   load(url(url.link))
   sites <- TFBS.list[[org]]
   rm(TFBS.list)
@@ -588,7 +605,15 @@ create_rna_atac <- function(obj = NULL, ntfs = 5, ngenes = 100,
 
 
 #' Predict cell-type-specific enhancer-driven gene regulatory networks (eGRNs)
-#'
+#' 
+#' @description Transcription factors (TFs) interact with chromatin regions (herein we call them enhancers), 
+#' to regulate the downstream target genes. Joint profiling of scRNA-seq and scATAC-seq shed light upon 
+#' gene expression and chromatin accessibility in each cell, providing a great opportunity to inspect 
+#' the underlying gene regulatory mechanisms in different cell types. Enhancer-driven 
+#' gene regulatory networks (eGRNs) are gene regulatory networks (GRNs) in which TFs regulate their target genes 
+#' via binding accessible enhancers in a cell type/state/subpopulation. This function takes as input a 
+#' \code{Seurat} object and a list of eRegulons, and then outputs cell-type-specific eGRNs.
+#' 
 #' @importFrom dplyr %>%
 #' @importFrom Seurat DefaultAssay SCTransform RunPCA RunUMAP FindMultiModalNeighbors FindClusters
 #' @importFrom Signac RunTFIDF FindTopFeatures RunSVD
@@ -713,7 +738,16 @@ get_cts_en_GRNs <- function(obj = NULL, celltype = "seurat_clusters",
 
 
 #' Identify cell-type-specific enhancer regulons (eRegulons)
-#'
+#' 
+#' @description Enhancer regulons (eRegulons) are active in various cell subpopulations. Some 
+#' of them may be enriched in one or more cell types. The successful identification of eRegulons 
+#' at the single-cell level can improve the detection of heterogeneous transcriptional regulatory 
+#' mechanisms across various cell types and allows for reliable constructions of global gene regulatory 
+#' networks encoded in complex diseases. Hence, it is critical to study cell-type-specific eRegulons. 
+#' eRegulons specific to a cell type are called cell-type-specific eRegulons. This function takes as 
+#' input a \code{Seurat} object (composed of scRNA-seq and scATAC-seq) and cell-type-specific enhancer-drive 
+#' gene regulatory networks (eGRNs) and then identify the cell-type-specific eRegulons in each cell type/cluster.
+#' 
 #' @importFrom dplyr %>%
 #'
 #' @export
@@ -803,6 +837,12 @@ get_cts_en_regs <- function(obj = NULL, peak.assay = "ATAC", de.genes = NULL,
 #' Calculate the precision, recall, and f-scores of overlaps between 
 #' two \code{GRanges} objects indicating enhancer-gene relations
 #' 
+#' @description Given two \code{GRanges} objects, each of which has the meta column named 
+#' "gene", this function calculates the overlaps between them. Based on the calculated overlaps, 
+#' this function computes precision, recall, and f-score. This function aims to assess the enhancer-gene 
+#' relations in eRegulons or eGRNs. We may use the enhancer-target pair databases, e.g., EnhancerAtlas or 
+#' scEnhancer of the same tissues or cell lines.
+#' 
 #' @import dplyr
 #' @export
 #' @rdname intersect_enhancer_gene_relations
@@ -836,6 +876,9 @@ intersect_enhancer_gene_relations <- function(x, y) {
 
 #' Calculate the precision, recall, and f-scores of the overlaps between 
 #' two lists of \code{GRanges} objects indicating enhancer-gene relations
+#' 
+#' @description This function has the same functionality as the function "intersect_enhancer_gene_relations". 
+#' The only difference is that this function aims to compare two lists of \code{GRanges} objects.
 #' 
 #' @export
 #' @rdname intersect_enhancer_gene_relations_in_batch
@@ -895,6 +938,13 @@ intersect_enhancer_gene_relations_in_batch <- function(link.pairs, ep.ll,
 
 #' Calculate the p-values of overlaps between two \code{GRanges} objects
 #' 
+#' @description Given two \code{GRanges} objects, this function calculates the overlaps between them. 
+#' Based on the calculated overlaps, 
+#' this function relies upon \code{regionR} to perform permutation test to assess the significance of 
+#' overlaps between the two \code{GRanges} objects. Finally, a p-value will be calculated. Usually, we 
+#' perform comparison for the enhancer set of an eRegulon against a series of ChIP-seq peaks in the same tissues 
+#' or cell lines.
+#' 
 #' @export
 #' @rdname intersect_peaks
 #' 
@@ -916,12 +966,17 @@ intersect_peaks <- function(x, y, n.times = 100, alternative = "greater") {
 
 #' Calculate the p-values of overlaps between two lists of \code{GRanges} objects
 #' 
+#' @description This function has the same functionality as the function "intersect_peaks". The 
+#' only difference is that this function compares two lists of \code{GRanges} objects and returns 
+#' a \code{data.frame} composed of the IDs in each \code{GRanges} object as well as the p-values.
+#' 
 #' @export
 #' @rdname intersect_peaks_in_batch
 #' 
 #' @param x.ll The first list of \code{GRanges} objects
 #' @param y.ll The first list of \code{GRanges} objects
 #' @param n.times The number of times of permutation, 1000 by default
+#' 
 #' @return Returns a \code{data.frame} composed of the IDs of significantly overlapped 
 #' \code{GRanges} objects and p-values
 #'
@@ -947,7 +1002,12 @@ intersect_peaks_in_batch <- function(x.ll, y.ll, n.times = 100) {
 
 #' Perform enrichment analysis for eRegulon genes against gene ontology (GO) terms 
 #' and KEGG pathways
-#'
+#' 
+#' @description This function aims to calculate the enrichment of genes in each eRegulon against 
+#' gene ontology (GO) terms or KEGG patthways. Finally, this function returns a list of \code{data.frame} 
+#' objects, each of which represents one functional genomics databases, e.g., Biological Process, 
+#' Molecular Function, Cellular Component, and KEGG pathways (human or mouse).
+#' 
 #' @export
 #' @rdname enrich_genes
 #' 

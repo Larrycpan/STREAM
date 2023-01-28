@@ -1,12 +1,12 @@
 Package: stream2
 Title: Enhancer-driven gene regulatory network inference from single-cell RNA-seq and ATAC-seq 
 Version: 2.0.0
-Date: 2022-1-4
+Date: 2023-1-27
 Authors@R: 
   c(person(given = "Yang", 
           family = "Li", 
           email = "liyang.bioinformatics@gmail.com", 
-          role = c("aut", "cre"),
+          role = c("aut", "cre"), 
           comment = c(ORCID = "0000-0002-7677-9028")),
     person(given = "Anjun", 
           family = "Ma", 
@@ -50,16 +50,32 @@ Description: We present a new algorithm, STREAM, for enhancer-driven gene regula
     Alzheimer’s disease dataset over a time course. 
 Reference: Li et al. (2022) <doi:10.1101/2022.12.15.520582>.
 Depends:
-    R (>= 4.0.0),
-    methods
-License: `use_mit_license()`, `use_gpl3_license()` or friends to pick a
-    license
+    R (>= 4.2.1),
+    Biobase
+License: MIT + file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
-LazyData: true
+LazyData: false
 RoxygenNote: 7.2.3
-URL: https://github.com/YangLi-Bio/stream_core
-biocViews:
+URL: https://github.com/YangLi-Bio/stream2
+biocViews: 
+    Software,
+    SingleCell,
+    RNASeq,
+    ATACSeq,
+    Normalization,
+    Preprocessing,
+    DimensionReduction,
+    Visualization,
+    QualityControl,
+    BiClustering,
+    GeneExpression,
+    DifferentialExpression,
+    ChromatinAccessibility,
+    DifferentialAccessibility,
+    FunctionalGeneModules,
+    Regulon,
+    Network
 Imports:
     AnnotationDbi,
     BSgenome,
@@ -109,6 +125,7 @@ Collate:
     'cistrome_tools.R'
     'epigenome_tools.R'
     'multiome_tools.R'
+    'protein.R'
     'reguome_tools.R'
     'run_stream.R'
     'stream2.R'
@@ -117,4 +134,8 @@ Collate:
     'visual.R'
 Suggests: 
     testthat (>= 3.0.0)
-Config/testthat/edition: 3
+VignetteBuilder: knitr
+Language: en-US
+NeedsCompilation: no
+Packaged: 2023-01-27 16:17:53 UTC; brent
+Maintainer: Yang Li <liyang.bioinformatics@gmail.com>
