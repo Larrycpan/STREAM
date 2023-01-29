@@ -34,13 +34,15 @@ subset_object <- function(LTMG.obj, object, peak.assay = 'ATAC',
 
 
 
-#'
+#' 
+#' @importFrom S4Vectors queryHits subjectHits
+#' 
 #' @keywords internal
 #' 
 subset_GR_intervals <- function(GR = NULL, distance = 5e+05, 
                     peaks = NULL) {
   
-  return(peaks[unique(queryHits(GenomicAlignments::findOverlaps(
+  return(peaks[unique(queryHits(GenomicRanges::findOverlaps(
     query = Signac::StringToGRanges(peaks), 
     subject = Signac::Extend(
       x = GR, 

@@ -917,6 +917,8 @@ get_cts_en_regs <- function(obj = NULL, peak.assay = "ATAC", de.genes = NULL,
 #' scEnhancer of the same tissues or cell lines.
 #' 
 #' @import dplyr
+#' @importFrom S4Vectors queryHits subjectHits
+#' 
 #' @export
 #' @rdname intersect_enhancer_gene_relations
 #' 
@@ -946,7 +948,7 @@ intersect_enhancer_gene_relations <- function(x, y) {
   overlap.genes <- intersect(unique(x$gene), unique(y$gene))
   x.overlap <- x[x$gene %in% overlap.genes]
   y.overlap <- y[y$gene %in% overlap.genes]
-  query.subject <- GenomicAlignments::findOverlaps(query = x.overlap,
+  query.subject <- GenomicRanges::findOverlaps(query = x.overlap,
                                                    subject = y.overlap)
   x.peaks <- Signac::GRangesToString(x)
   x.genes <- x$gene
@@ -967,7 +969,10 @@ intersect_enhancer_gene_relations <- function(x, y) {
 #' @description This function has the same functionality as the function "intersect_enhancer_gene_relations". 
 #' The only difference is that this function aims to compare two lists of \code{GRanges} objects.
 #' 
+#' @importFrom S4Vectors queryHits subjectHits
+#' 
 #' @export
+#' 
 #' @rdname intersect_enhancer_gene_relations_in_batch
 #' 
 #' @param link.pairs The first list of \code{GRanges} objects saving enhancer-gene relations.
@@ -1004,7 +1009,8 @@ intersect_enhancer_gene_relations_in_batch <- function(link.pairs, ep.ll,
   if (only.overlap) {
     message ("Evaluating enhancer-gene relations only for the ones overlapped with enhancers ...\n", 
              "There are in total ", length(link.pairs), " enhancer-gene relations before overlapping.")
-    link.pairs <- link.pairs[unique(queryHits(findOverlaps(link.pairs, do.call("c", ep.ll))))]
+    link.pairs <- link.pairs[unique(queryHits(GenomicRanges::findOverlaps(link.pairs, 
+                                                                          do.call("c", ep.ll))))]
     message ("There are in total ", length(link.pairs), " enhancer-gene relations after overlapping.")
   }
   n.pairs <- length(link.pairs)
@@ -1026,7 +1032,7 @@ intersect_enhancer_gene_relations_in_batch <- function(link.pairs, ep.ll,
     overlap.genes <- intersect(unique(link.pairs$gene), unique(ee$gene))
     overlap.query <- link.pairs[link.pairs$gene %in% overlap.genes]
     overlap.subject <- ee[ee$gene %in% overlap.genes]
-    overlap.hit <- GenomicAlignments::findOverlaps(query = overlap.query, subject = overlap.subject)
+    overlap.hit <- GenomicRanges::findOverlaps(query = overlap.query, subject = overlap.subject)
     hit.query <- length(unique(queryHits(overlap.hit)))
     hit.subject <- length(unique(subjectHits(overlap.hit)))
     precision <- hit.query / n.pairs

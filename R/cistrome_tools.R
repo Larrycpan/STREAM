@@ -2,6 +2,7 @@
 #' which was borrowed from Signac
 #'
 #' @keywords internal
+#' @importFrom S4Vectors queryHits subjectHits
 #'
 DistanceToTSS <- function(peaks, genes, distance = 2e+05,
                           sep = c("-", "-")) {
@@ -12,7 +13,7 @@ DistanceToTSS <- function(peaks, genes, distance = 2e+05,
       x = tss, upstream = distance, downstream = distance
     )
   ) # extand the genomic range from the TSS till downstream/upstream 200000 bp
-  overlaps <- GenomicAlignments::findOverlaps(
+  overlaps <- GenomicRanges::findOverlaps(
     query = peaks,
     subject = genes.extended,
     type = 'any',

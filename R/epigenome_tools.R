@@ -617,9 +617,11 @@ reconcile <- function(values) {
 #'
 #' @keywords internal
 #' 
+#' @importFrom S4Vectors queryHits subjectHits
+#' 
 overlap_peak_lst <- function(lst1, lst2) {
   
-  overlaps <- GenomicAlignments::findOverlaps(
+  overlaps <- GenomicRanges::findOverlaps(
     query = lst1,
     subject = lst2,
     type = 'any',

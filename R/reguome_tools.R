@@ -15,7 +15,7 @@ find_TFBS <- function(peaks, TFBS.list, org = "hg38", candidate.TFs = NULL) {
     )
     message ("Searching annotated TF binding sitesin JASPAR using the TF list provided by the user ...")
   }
-  overlap <- GenomicAlignments::findOverlaps(query = Signac::StringToGRanges(peaks),
+  overlap <- GenomicRanges::findOverlaps(query = Signac::StringToGRanges(peaks),
                                              subject = jaspar.sites$peak)
   if (length(overlap) < 1) {
     stop ("No TF is found to bind the enhancers")
