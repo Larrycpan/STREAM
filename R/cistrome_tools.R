@@ -383,8 +383,8 @@ link_peaks <- function(object, peak.assay = "ATAC", expression.assay = "RNA",
   all.peaks <- rownames(x = peak.data)
   # message ("Dimensions of peak-by-cell matrix (", class(peak.data), ") :",
   #          nrow(peak.data), " x ", ncol(peak.data), ".")
-  peak.data <- t(x = peak.data)
-  # peak.data <- quiet(SeuratDisk::Transpose(peak.data) )
+  # peak.data <- Matrix::t(x = peak.data)
+  peak.data <- quiet(SeuratDisk::Transpose(peak.data) )
   # message ("Dimensions of peak-by-cell matrix (", class(peak.data), ") :",
   #          nrow(peak.data), " x ", ncol(peak.data), ".")
   coef.vec <- c()
