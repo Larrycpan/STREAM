@@ -271,6 +271,7 @@ link_peaks_to_genes <- function(peak.obj = c("chrX-192989-220023", "chr2-1780950
 #' Link peaks to genes using \code{Signac} functions
 #'
 #' @keywords internal
+#' @export
 #' 
 link_peaks <- function(object, peak.assay = "ATAC", expression.assay = "RNA", 
                         peak.slot = "counts", 
@@ -374,10 +375,13 @@ link_peaks <- function(object, peak.assay = "ATAC", expression.assay = "RNA",
   }
   genes.use <- colnames(x = peak_distance_matrix)
   all.peaks <- rownames(x = peak.data)
-  # message ("Dimensions of peak-by-cell matrix (", class(peak.data), ") :", 
+  # message ("Dimensions of peak-by-cell matrix (", class(peak.data), ") :",
   #          nrow(peak.data), " x ", ncol(peak.data), ".")
   # peak.data <- t(x = peak.data)
   peak.data <- quiet(SeuratDisk::Transpose(peak.data) )
+  all.peaks <- rownames(x = peak.data)
+  message ("Dimensions of peak-by-cell matrix (", class(peak.data), ") :",
+           nrow(peak.data), " x ", ncol(peak.data), ".")
   coef.vec <- c()
   gene.vec <- c()
   zscore.vec <- c()
@@ -407,8 +411,7 @@ link_peaks <- function(object, peak.assay = "ATAC", expression.assay = "RNA",
                                    score_cutoff, , drop = FALSE]
       if (nrow(x = coef.result) == 0) {
         return(list(gene = NULL, coef = NULL, zscore = NULL))
-      }
-      else {
+      } else {
         peaks.test <- rownames(x = coef.result)
         trans.peaks <- all.peaks[!grepl(pattern = paste0("^", 
                                                          gene.chrom), x = all.peaks)]
@@ -453,6 +456,7 @@ link_peaks <- function(object, peak.assay = "ATAC", expression.assay = "RNA",
       }
     }
   })
+  message ("Length of res: ", length(res), ".")
   gene.vec <- do.call(what = c, args = lapply(X = res, FUN = `[[`, 
                                               1))
   coef.vec <- do.call(what = c, args = lapply(X = res, FUN = `[[`, 
@@ -461,7 +465,7 @@ link_peaks <- function(object, peak.assay = "ATAC", expression.assay = "RNA",
                                                 3))
   if (length(x = coef.vec) == 0) {
     if (verbose) {
-      message("No significant links found")
+      message("No significant links found!")
     }
     return(object)
   }
