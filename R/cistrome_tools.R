@@ -271,6 +271,7 @@ link_peaks_to_genes <- function(peak.obj = c("chrX-192989-220023", "chr2-1780950
 #' Link peaks to genes using \code{Signac} functions
 #'
 #' @keywords internal
+#' @export
 #' 
 link_peaks <- function(object, peak.assay = "ATAC", expression.assay = "RNA", 
                         peak.slot = "counts", 
@@ -381,7 +382,7 @@ link_peaks <- function(object, peak.assay = "ATAC", expression.assay = "RNA",
   gene.vec <- c()
   zscore.vec <- c()
   # future::nbrOfWorkers() <- future::availableCores() # Author added this line
-  if (T) {
+  if (TRUE) {
   # if (future::nbrOfWorkers() > 1) {
     # invisible(require(future.apply))
     mylapply <- pbmcapply::pbmclapply
