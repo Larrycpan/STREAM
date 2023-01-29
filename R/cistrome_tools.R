@@ -273,6 +273,10 @@ link_peaks_to_genes <- function(peak.obj = c("chrX-192989-220023", "chr2-1780950
 #' Link peaks to genes using \code{Signac} functions
 #'
 #' @keywords internal
+#' 
+#' @importMethodsFrom Matrix t
+#' @importFrom GenomeInfoDb seqnames
+#' 
 #' @export
 #' 
 link_peaks <- function(object, peak.assay = "ATAC", expression.assay = "RNA", 
@@ -455,7 +459,6 @@ link_peaks <- function(object, peak.assay = "ATAC", expression.assay = "RNA",
       }
     }
   })
-  sapply(res, length)
   gene.vec <- do.call(what = c, args = lapply(X = res, FUN = `[[`, 
                                               1))
   coef.vec <- do.call(what = c, args = lapply(X = res, FUN = `[[`, 
