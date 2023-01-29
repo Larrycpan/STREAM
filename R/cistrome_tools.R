@@ -379,11 +379,10 @@ link_peaks <- function(object, peak.assay = "ATAC", expression.assay = "RNA",
   all.peaks <- rownames(x = peak.data)
   # message ("Dimensions of peak-by-cell matrix (", class(peak.data), ") :",
   #          nrow(peak.data), " x ", ncol(peak.data), ".")
-  # peak.data <- t(x = peak.data)
-  peak.data <- quiet(SeuratDisk::Transpose(peak.data) )
-  all.peaks <- rownames(x = peak.data)
-  message ("Dimensions of peak-by-cell matrix (", class(peak.data), ") :",
-           nrow(peak.data), " x ", ncol(peak.data), ".")
+  peak.data <- t(x = peak.data)
+  # peak.data <- quiet(SeuratDisk::Transpose(peak.data) )
+  # message ("Dimensions of peak-by-cell matrix (", class(peak.data), ") :",
+  #          nrow(peak.data), " x ", ncol(peak.data), ".")
   coef.vec <- c()
   gene.vec <- c()
   zscore.vec <- c()
@@ -404,8 +403,7 @@ link_peaks <- function(object, peak.assay = "ATAC", expression.assay = "RNA",
     gene.chrom <- as.character(x = seqnames(x = gene.coords.use[i]))
     if (sum(peak.use) < 2) {
       return(list(gene = NULL, coef = NULL, zscore = NULL))
-    }
-    else {
+    } else {
       peak.access <- peak.data[, peak.use, drop = FALSE]
       coef.result <- cor_method(X = peak.access, Y = gene.expression)
       rownames(x = coef.result) <- colnames(x = peak.access)
@@ -448,8 +446,7 @@ link_peaks <- function(object, peak.assay = "ATAC", expression.assay = "RNA",
       links.keep <- pval.vec < pvalue_cutoff
       if (sum(x = links.keep) == 0) {
         return(list(gene = NULL, coef = NULL, zscore = NULL))
-      }
-      else {
+      } else {
         gene.vec <- gene.vec[links.keep]
         coef.vec <- coef.vec[links.keep]
         zscore.vec <- zscore.vec[links.keep]
