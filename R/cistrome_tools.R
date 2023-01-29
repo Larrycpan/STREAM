@@ -2,6 +2,7 @@
 #' which was borrowed from Signac
 #'
 #' @keywords internal
+#'
 #' @importFrom S4Vectors queryHits subjectHits
 #'
 DistanceToTSS <- function(peaks, genes, distance = 2e+05,
@@ -20,8 +21,8 @@ DistanceToTSS <- function(peaks, genes, distance = 2e+05,
     select = 'all'
   ) # find the peaks overlapped with the extended genomic ranges of genes
   hit_matrix <- Matrix::sparseMatrix(
-    i = queryHits(x = overlaps),
-    j = subjectHits(x = overlaps),
+    i = S4Vectors::queryHits(x = overlaps),
+    j = S4Vectors::subjectHits(x = overlaps),
     x = 1,
     dims = c(length(x = peaks), length(x = genes.extended))
   ) # build a sparse matrix to record the overlaps between peaks and extended genomic ranges of genes
