@@ -26,13 +26,15 @@ TRUE by default.}
 \value{
 Returns a \code{data.frame} to indicate the query-hit pairs as well as precision, recall, and f-score.
 The \code{data.frame} contains the following columns:
-\item{EP}{The ID of overlapped enhancer-gene pairs in databases.}
-\item{precision}{The precision of the overlaps between enhancer-gene relations between
+\itemize{
+\item{EP: The ID of overlapped enhancer-gene pairs in databases.}
+\item{precision: The precision of the overlaps between enhancer-gene relations between
 enhancer regulons (eRegulons) and that in databases.}
-\item{recall}{The recall of the overlaps between enhancer-gene relations between
+\item{recall: The recall of the overlaps between enhancer-gene relations between
 eRegulons and that in databases.}
-\item{fscore}{The f-score of the overlaps between enhancer-gene relations between
+\item{fscore: The f-score of the overlaps between enhancer-gene relations between
 eRegulons and that in databases.}
+}
 }
 \description{
 This function has the same functionality as the function "intersect_enhancer_gene_relations".

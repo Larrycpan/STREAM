@@ -15,12 +15,14 @@ intersect_enhancer_gene_relations(x, y)
 \value{
 Return a \code{data.frame} indicating overlapped \code{GRanges} objects,
 containing the following columns:
-\item{x.peak}{The enhancer in the first \code{GRanges} object for each pair of
+\itemize{
+\item{x.peak: The enhancer in the first \code{GRanges} object for each pair of
 overlapped \code{GRanges} objects.}
-\item{y.peak}{The enhancer in the second \code{GRanges} object for each pair of
+\item{y.peak: The enhancer in the second \code{GRanges} object for each pair of
 overlapped \code{GRanges} objects.}
-\item{gene}{The gene for each pair of
+\item{gene: The gene for each pair of
 overlapped \code{GRanges} objects.}
+}
 }
 \description{
 Given two \code{GRanges} objects, each of which has the meta column named

@@ -277,8 +277,6 @@ link_peaks_to_genes <- function(peak.obj = c("chrX-192989-220023", "chr2-1780950
 #' @importMethodsFrom Matrix t
 #' @importFrom GenomeInfoDb seqnames
 #' 
-#' @export
-#' 
 link_peaks <- function(object, peak.assay = "ATAC", expression.assay = "RNA", 
                         peak.slot = "counts", 
                         expression.slot = "data", method = "pearson", gene.coords = NULL, 
