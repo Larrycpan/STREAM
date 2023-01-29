@@ -21,7 +21,7 @@ Return a numeric p-value.
 \description{
 Given two \code{GRanges} objects, this function calculates the overlaps between them.
 Based on the calculated overlaps,
-this function relies upon \code{regionR} to perform permutation test to assess the significance of
+this function relies upon \code{regioneR} to perform permutation test to assess the significance of
 overlaps between the two \code{GRanges} objects. Finally, a p-value will be calculated. Usually, we
 perform comparison for the enhancer set of an eRegulon against a series of ChIP-seq peaks in the same tissues
 or cell lines.

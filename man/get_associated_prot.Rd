@@ -2,19 +2,25 @@
 % Please edit documentation in R/protein.R
 \name{get_associated_prot}
 \alias{get_associated_prot}
-\title{Given a list of TFs, output associated proteins from BioGrid interacting with these TFs}
+\title{Given a list of TFs, output associated proteins from BioGrid interacting with these TFs.}
 \usage{
 get_associated_prot(key.TFs = NULL, db = "BioGrid", org = "human")
 }
 \arguments{
-\item{key.TFs}{The list of intersted TF,s NULL by default}
+\item{key.TFs}{The list of interested TFs.}
 
 \item{db}{The database of protein relations, including BioGrid, IntAct, STRING, and CORUM,
-BioGrid by default}
+BioGrid by default. Other databases have been under development and will be added soon.}
 
-\item{org}{The organism, human by default}
+\item{org}{The organism, human by default.}
+}
+\value{
+This function returns a list of TF names.
 }
 \description{
-Given a list of TFs, output associated proteins from BioGrid interacting with these TFs
+Collaborations among proteins, e.g., transcription factors (TFs), contribute to the regulation
+of target genes via binding to the same set of enhancers. To narrow down the scope of
+enhancer regulons (eRegulons), we encourage users to select a TF list when running \code{stream2}. This function
+aims to enlarge the TF list by incorporating the proteins interacting with TFs in the user-provided list.
 }
 \keyword{internal}

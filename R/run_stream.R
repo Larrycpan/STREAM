@@ -948,7 +948,6 @@ intersect_enhancer_gene_relations <- function(x, y) {
   y.overlap <- y[y$gene %in% overlap.genes]
   query.subject <- GenomicAlignments::findOverlaps(query = x.overlap,
                                                    subject = y.overlap)
-  # library(Repitools)
   x.peaks <- Signac::GRangesToString(x)
   x.genes <- x$gene
   y.peaks <- Signac::GRangesToString(y)
@@ -1046,7 +1045,7 @@ intersect_enhancer_gene_relations_in_batch <- function(link.pairs, ep.ll,
 #' 
 #' @description Given two \code{GRanges} objects, this function calculates the overlaps between them. 
 #' Based on the calculated overlaps, 
-#' this function relies upon \code{regionR} to perform permutation test to assess the significance of 
+#' this function relies upon \code{regioneR} to perform permutation test to assess the significance of 
 #' overlaps between the two \code{GRanges} objects. Finally, a p-value will be calculated. Usually, we 
 #' perform comparison for the enhancer set of an eRegulon against a series of ChIP-seq peaks in the same tissues 
 #' or cell lines.
