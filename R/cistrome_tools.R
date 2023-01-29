@@ -271,7 +271,6 @@ link_peaks_to_genes <- function(peak.obj = c("chrX-192989-220023", "chr2-1780950
 #' Link peaks to genes using \code{Signac} functions
 #'
 #' @keywords internal
-#' @export
 #' 
 link_peaks <- function(object, peak.assay = "ATAC", expression.assay = "RNA", 
                         peak.slot = "counts", 
@@ -375,9 +374,10 @@ link_peaks <- function(object, peak.assay = "ATAC", expression.assay = "RNA",
   }
   genes.use <- colnames(x = peak_distance_matrix)
   all.peaks <- rownames(x = peak.data)
-  message ("Dimensions of peak-by-cell matrix (", class(peak.data), ") :", 
-           nrow(peak.data), " x ", ncol(peak.data), ".")
-  peak.data <- t(x = peak.data)
+  # message ("Dimensions of peak-by-cell matrix (", class(peak.data), ") :", 
+  #          nrow(peak.data), " x ", ncol(peak.data), ".")
+  # peak.data <- t(x = peak.data)
+  peak.data <- quiet(SeuratDisk::Transpose(peak.data) )
   coef.vec <- c()
   gene.vec <- c()
   zscore.vec <- c()

@@ -21,19 +21,19 @@ get_cts_en_GRNs(
 \item{celltype}{The metadata column indicating the cell types or clusters, "seurat_clusters" by default.}
 
 \item{en.regs}{A list of cell-type-specific eRegulons, each of which contains the following attributes:
-\item{terminal} {The \code{IRIS-FGM} block used to predict the eRegulon.}
-\item{Tier} {The tier of the TF-enhancer relations: 1 represents JASPAR annotations;
+\item{terminal}{The \code{IRIS-FGM} block used to predict the eRegulon.}
+\item{Tier}{The tier of the TF-enhancer relations: 1 represents JASPAR annotations;
 2 denotes motif scanning.}
-\item{TF} {The TF of the eRegulon.}
-\item{genes} {Genes of the eRegulon.}
-\item{peaks} {Enhancers of the eRegulon.}
-\item{cells} {Cells where the eRegulon is active.}
-\item{atac.ratio} {The ratio of cells where the eRegulon enhancers are
+\item{TF}{The TF of the eRegulon.}
+\item{genes}{Genes of the eRegulon.}
+\item{peaks}{Enhancers of the eRegulon.}
+\item{cells}{Cells where the eRegulon is active.}
+\item{atac.ratio}{The ratio of cells where the eRegulon enhancers are
 accessible against cells in which the eRegulon genes are expressed.}
-\item{score} {The eRegulon score.}
-\item{weight} {The eRegulon weight.}
-\item{links} {The enhancer-gene relations saved in \code{GRanges} object.}
-\item{seed} {The seed to obtain the eRegulon.}}
+\item{score}{The eRegulon score.}
+\item{weight}{The eRegulon weight.}
+\item{links}{The enhancer-gene relations saved in \code{GRanges} object.}
+\item{seed}{The seed to obtain the eRegulon.}}
 
 \item{peak.assay}{The chromatin accessibility assay, "ATAC" by default.}
 

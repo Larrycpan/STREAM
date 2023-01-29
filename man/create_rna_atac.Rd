@@ -46,10 +46,10 @@ create_rna_atac(
 \value{
 Returns a list composed of an eRegulon list and a \code{Seurat} object.
 each item of the simulated eRegulon contains the following attributes:
-\item{TF} {The TF of the eRegulon.}
-\item{genes} {Genes of the eRegulon.}
-\item{peaks} {Enhancers of the eRegulon.}
-\item{cells} {Cells where the eRegulon is active.}
+\item{TF}{The TF of the eRegulon.}
+\item{genes}{Genes of the eRegulon.}
+\item{peaks}{Enhancers of the eRegulon.}
+\item{cells}{Cells where the eRegulon is active.}
 }
 \description{
 Simulate a jointly profiled scRNA-seq and scATAC-seq dataset in which

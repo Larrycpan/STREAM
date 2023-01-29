@@ -36,12 +36,12 @@ is cell type, and the \code{GRanges} object contains metadata columns "gene" and
 }
 \value{
 Returns a list of cell-type-specific eRegulons,  each of which contains the following attributes:
-\item{TF} {The TF of the cell-type-specific eRegulons.}
-\item{genes} {Genes of the cell-type-specific eRegulons.}
-\item{enhancers} {Enhancers of the cell-type-specific eRegulons.}
-\item{cells} {Cells where the celltype.}
-\item{links} {The enhancer-gene relations saved in \code{GRanges} object.}
-\item{celltype} {The celltype of the cell-type-specific eRegulons.}
+\item{TF}{The TF of the cell-type-specific eRegulons.}
+\item{genes}{Genes of the cell-type-specific eRegulons.}
+\item{enhancers}{Enhancers of the cell-type-specific eRegulons.}
+\item{cells}{Cells where the celltype.}
+\item{links}{The enhancer-gene relations saved in \code{GRanges} object.}
+\item{celltype}{The celltype of the cell-type-specific eRegulons.}
 }
 \description{
 Enhancer regulons (eRegulons) are active in various cell subpopulations. Some

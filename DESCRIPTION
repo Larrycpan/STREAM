@@ -112,6 +112,7 @@ Imports:
     SingleCellExperiment,
     scales,
     Seurat,
+    SeuratDisk,
     Signac,
     simpIntLists,
     STRINGdb,

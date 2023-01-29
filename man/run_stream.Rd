@@ -93,19 +93,19 @@ for submodular optimization, 30 by default.}
 \value{
 When running on a \code{Seurat} object,
 returns a list of eRegulons saved in a nested list, each of which contains the following attributes:
-\item{terminal} {The \code{IRIS-FGM} block used to predict the eRegulon.}
-\item{Tier} {The tier of the TF-enhancer relations: 1 represents JASPAR annotations;
+\item{terminal}{The \code{IRIS-FGM} block used to predict the eRegulon.}
+\item{Tier}{The tier of the TF-enhancer relations: 1 represents JASPAR annotations;
 2 denotes motif scanning.}
-\item{TF} {The TF of the eRegulon.}
-\item{genes} {Genes of the eRegulon.}
-\item{peaks} {Enhancers of the eRegulon.}
-\item{cells} {Cells where the eRegulon is active.}
-\item{atac.ratio} {The ratio of cells where the eRegulon enhancers are
+\item{TF}{The TF of the eRegulon.}
+\item{genes}{Genes of the eRegulon.}
+\item{peaks}{Enhancers of the eRegulon.}
+\item{cells}{Cells where the eRegulon is active.}
+\item{atac.ratio}{The ratio of cells where the eRegulon enhancers are
 accessible against cells in which the eRegulon genes are expressed.}
-\item{score} {The eRegulon score.}
-\item{weight} {The eRegulon weight.}
-\item{links} {The enhancer-gene relations saved in \code{GRanges} object.}
-\item{seed} {The seed to obtain the eRegulon.}
+\item{score}{The eRegulon score.}
+\item{weight}{The eRegulon weight.}
+\item{links}{The enhancer-gene relations saved in \code{GRanges} object.}
+\item{seed}{The seed to obtain the eRegulon.}
 }
 \description{
 Most transcriptional regulation analyses, including prediction of transcription factor
