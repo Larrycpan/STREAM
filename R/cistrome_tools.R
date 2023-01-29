@@ -374,6 +374,7 @@ link_peaks <- function(object, peak.assay = "ATAC", expression.assay = "RNA",
   }
   genes.use <- colnames(x = peak_distance_matrix)
   all.peaks <- rownames(x = peak.data)
+  message ("Dimensions of peak.data:", nrow(peak.data), " x ", ncol(peak.data))
   peak.data <- t(x = peak.data)
   coef.vec <- c()
   gene.vec <- c()
