@@ -1,4 +1,4 @@
-#' \code {stream2} package
+#' \code{stream2} package
 #' 
 #' @keywords internal
 "_PACKAGE"
