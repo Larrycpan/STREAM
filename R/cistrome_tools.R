@@ -456,7 +456,7 @@ link_peaks <- function(object, peak.assay = "ATAC", expression.assay = "RNA",
       }
     }
   })
-  message ("Length of res: ", length(res), ".")
+  sapply(res, length)
   gene.vec <- do.call(what = c, args = lapply(X = res, FUN = `[[`, 
                                               1))
   coef.vec <- do.call(what = c, args = lapply(X = res, FUN = `[[`, 
