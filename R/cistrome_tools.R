@@ -332,7 +332,7 @@ link_peaks <- function(object, peak.assay = "ATAC", expression.assay = "RNA",
   genecounts <- rowSums(x = expression.data > 0)
   peaks.keep <- peakcounts > min.cells
   genes.keep <- genecounts > min.cells
-  peak.data <- peak.data[peaks.keep, ]
+  peak.data <- peak.data[peaks.keep, , drop = FALSE]
   if (!is.null(x = genes.use)) {
     genes.keep <- intersect(x = names(x = genes.keep[genes.keep]), 
                             y = genes.use)
