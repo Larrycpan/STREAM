@@ -5,7 +5,7 @@
 \title{Retain genes or enhancers which are within a nearby range of at least one enhancer or gene,
 respectively}
 \usage{
-filter_nearby_genes(obj, distance = 5e+05, peak.assay = "ATAC")
+filter_nearby_genes(obj, distance = 1e+06, peak.assay = "ATAC")
 }
 \description{
 Retain genes or enhancers which are within a nearby range of at least one enhancer or gene,

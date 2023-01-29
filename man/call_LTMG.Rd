@@ -2,11 +2,11 @@
 % Please edit documentation in R/transcriptome_tools.R
 \name{call_LTMG}
 \alias{call_LTMG}
-\title{LTMG modeling}
+\title{\code{IRIS-FGM} modeling}
 \usage{
 call_LTMG(obj)
 }
 \description{
-LTMG modeling
+\code{IRIS-FGM} modeling
 }
 \keyword{internal}

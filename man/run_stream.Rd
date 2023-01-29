@@ -6,9 +6,11 @@
 \usage{
 run_stream(
   obj = NULL,
+  candidate.TFs = NULL,
   peak.assay = "ATAC",
   var.genes = 3000,
   top.peaks = 3000,
+  ifPutativeTFs = FALSE,
   min.cells = 10,
   out.dir = "./",
   org = "hg38",
@@ -29,66 +31,114 @@ run_stream(
   quantile.cutoff = 4,
   BlockOverlap = 0.5,
   Extension = 0.9,
-  url.link = "https://figshare.com/ndownloader/files/38644505",
   submod.step = 30,
-  min.eRegs = 100
+  min.eRegs = 100,
+  url.link = "https://figshare.com/ndownloader/files/38794185"
 )
 }
 \arguments{
-\item{obj}{A \code{Seurat} object composed of both scRNA-sed and scATAC-seq assays}
+\item{obj}{A \code{Seurat} object composed of both scRNA-seq and scATAC-seq assays.}
 
-\item{peak.assay}{The name of the scATAC-seq assay, "ATAC" by default}
+\item{candidate.TFs}{The list of candidate TFs used to identify eRegulons and eGRNs, NULL by default.}
+
+\item{peak.assay}{The scATAC-seq assay, "ATAC" by default.}
 
 \item{var.genes}{The number of highly variable genes to predict used to identify the core part of HBCs,
-3000 by default}
+3000 by default.}
 
 \item{top.peaks}{The number of top-ranked peaks to identify the core part of hybrid biclusters (HBCs),
-3000 by default}
+3000 by default.}
 
-\item{min.cells}{The cutoff of minimum number of cells for quality control (QC), 10 by default}
+\item{min.cells}{The cutoff of minimum number of cells for quality control (QC), 10 by default.}
 
-\item{out.dir}{The directory to save the intermediate or final results, "./" by default}
+\item{out.dir}{The directory to save the intermediate or final results, "./" by default.}
 
-\item{org}{The organism version, hg38 by default}
+\item{org}{The organism version, hg38 by default.}
 
-\item{top.ngenes}{The number of genes composing the core part of an HBC, 5 by default}
+\item{top.ngenes}{The number of genes composing the core part of an HBC, 5 by default.}
 
-\item{c.cutoff}{The cutoff of consistency during hybrid biclustering process, 1.0 by default}
+\item{c.cutoff}{The cutoff of consistency during hybrid biclustering process, 1.0 by default.}
 
-\item{n.blocks}{The cutoff of the maximum number of blocks output by IRIS-FGM, 100 by default}
+\item{n.blocks}{The cutoff of the maximum number of blocks output by IRIS-FGM, 100 by default.}
 
-\item{distance}{The distance cutoff to build enhancer-enhancer relations, 250000 by default}
+\item{distance}{The distance cutoff to build enhancer-enhancer relations, 5e+05 by default.}
 
-\item{filter_peaks_for_cicero}{Whether filter the peaks based on the Signac results before running Cicero,
-FALSE by default}
+\item{filter_peaks_for_cicero}{Whether filter the peaks in a neighborhood of the \code{Signac} results
+before running \code{cicero}, FALSE by default.}
 
 \item{intra.cutoff}{The cutoff to calculate pairwise similarity among HBCs associated with the same TFs,
-1.0 by default}
+1.0 by default.}
 
 \item{inter.cutoff}{The cutoff to compute pairwise similarity among genes in HBCs associated with different TFs,
-0.80 by default}
+0.80 by default.}
 
-\item{peak.cutoff}{The cutoff to quantify pairwise similarity among enhancers in HBCs, 0.80 by default}
+\item{peak.cutoff}{The cutoff to quantify pairwise similarity among enhancers in HBCs associated with
+different TFs, 0.80 by default.}
 
 \item{KL}{Which method to use for measuring the score of HBCs, "min.exp" by default, i.e.,
-the smaller one between the numbers of genes and cells in a HBC}
+the smaller one between the numbers of genes and cells in a HBC.}
 
 \item{quantile.cutoff}{The quantile cutoff of the ratio of HBC cells, where enhancers are accessible,
-4 by default, indicating the top-25\% among ranks}
+4 by default, indicating the top-25\% among ranks.}
 
-\item{BlockOverlap}{The cutoff of maximum overlap between blocks output by \code{IRIS-FGM}, 0.500 by default}
+\item{BlockOverlap}{The cutoff of maximum overlap between blocks output by \code{IRIS-FGM}, 0.50 by default.}
 
-\item{Extension}{The consistency level to expand a block by \code{IRIS-FGM}, 0.70 by default}
+\item{Extension}{The consistency level to expand a block by \code{IRIS-FGM}, 0.70 by default.}
 
-\item{submod.step}{The step size of the number of HBCs for submodular optimization, 30 by default}
+\item{submod.step}{The step size of, i.e., the number of HBCs to add in each step during iteration,
+for submodular optimization, 30 by default.}
 
-\item{min.eRegs}{The minimum number of enhancer regulons (eRegulons) to output, 100 by default}
+\item{min.eRegs}{The minimum number of enhancer regulons (eRegulons) to output, 100 by default.}
 }
 \value{
 When running on a \code{Seurat} object,
-returns a list of enhancer regulons, i.e., eRegulons, saved in a nested list
+returns a list of eRegulons saved in a nested list, each of which contains the following attributes:
+\item{terminal} {The \code{IRIS-FGM} block used to predict the eRegulon.}
+\item{Tier} {The tier of the TF-enhancer relations: 1 represents JASPAR annotations;
+2 denotes motif scanning.}
+\item{TF} {The TF of the eRegulon.}
+\item{genes} {Genes of the eRegulon.}
+\item{peaks} {Enhancers of the eRegulon.}
+\item{cells} {Cells where the eRegulon is active.}
+\item{atac.ratio} {The ratio of cells where the eRegulon enhancers are
+accessible against cells in which the eRegulon genes are expressed.}
+\item{score} {The eRegulon score.}
+\item{weight} {The eRegulon weight.}
+\item{links} {The enhancer-gene relations saved in \code{GRanges} object.}
+\item{seed} {The seed to obtain the eRegulon.}
 }
 \description{
-Identify enhancer regulons (eRegulons) from jointly profiled scRNA-seq and scATAC-seq data
+Most transcriptional regulation analyses, including prediction of transcription factor
+(TF) binding sites and identification of enhancer-gene relations require the discovery of enhancer
+regulons (eRegulons), which are active in a set of cells. A TF with its set of target enhancers
+and target genes is called an eRegulon. This function takes as input a \code{Seurat}
+object (containing both scRNA-seq and scATAC-seq) and then simultaneously identifies eRegulons as well
+as the cell sets where eRegulons are active. In addition, this function determines the number of eRegulons
+in a dataset by submodular optimization.
 }
-\concept{run_stream}
+\references{
+Li, Y., Ma, A., Wang, Y., Wang, C., Chen, S., Fu, H., Liu, B. and Ma, Q., 2022.
+Enhancer-driven gene regulatory networks inference from single-cell RNA-seq and ATAC-seq data.
+bioRxiv, pp.2022-12.
+
+Chang, Y., Allen, C., Wan, C., Chung, D., Zhang, C., Li, Z. and Ma, Q., 2021.
+IRIS-FGM: an integrative single-cell RNA-Seq interpretation system for functional gene module analysis.
+Bioinformatics, 37(18), pp.3045-3047.
+
+Xie, J., Ma, A., Zhang, Y., Liu, B., Cao, S., Wang, C., ... & Ma, Q. (2020).
+QUBIC2: a novel and robust biclustering algorithm for analyses and interpretation of
+large-scale RNA-Seq data. Bioinformatics, 36(4), 1143-1149.
+
+Stuart, T., Srivastava, A., Madad, S., Lareau, C. A., & Satija, R. (2021).
+Single-cell chromatin state analysis with Signac. Nature methods, 18(11), 1333-1341.
+
+Pliner, H. A., Packer, J. S., McFaline-Figueroa, J. L., Cusanovich,
+D. A., Daza, R. M., Aghamirzaie, D., ... & Trapnell, C. (2018).
+Cicero predicts cis-regulatory DNA interactions from single-cell chromatin accessibility data.
+Molecular cell, 71(5), 858-871.
+
+Castro-Mondragon, J. A., Riudavets-Puig, R., Rauluseviciute, I., Berhanu Lemma, R.,
+Turchi, L., Blanc-Mathieu, R., ... & Mathelier, A. (2022).
+JASPAR 2022: the 9th release of the open-access database of transcription factor binding profiles.
+Nucleic acids research, 50(D1), D165-D173.
+}

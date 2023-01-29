@@ -2,13 +2,13 @@
 % Please edit documentation in R/cistrome_tools.R
 \name{DistanceToTSS}
 \alias{DistanceToTSS}
-\title{Calculate the distance for each enhancer to their nearest TSS,
+\title{Calculate the distance for enhancers to their nearest TSS,
 which was borrowed from Signac}
 \usage{
 DistanceToTSS(peaks, genes, distance = 2e+05, sep = c("-", "-"))
 }
 \description{
-Calculate the distance for each enhancer to their nearest TSS,
+Calculate the distance for enhancers to their nearest TSS,
 which was borrowed from Signac
 }
 \keyword{internal}

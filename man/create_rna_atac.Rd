@@ -2,9 +2,8 @@
 % Please edit documentation in R/run_stream.R
 \name{create_rna_atac}
 \alias{create_rna_atac}
-\title{Get a simulated jointly profiled scRNA-seq and scATAC-seq data in which
-several enhancer regulons (eRegulons)
-are contained}
+\title{Simulate a jointly profiled scRNA-seq and scATAC-seq dataset in which
+several enhancer regulons (eRegulons) are contained.}
 \usage{
 create_rna_atac(
   obj = NULL,
@@ -17,39 +16,56 @@ create_rna_atac(
   org = "hg38",
   atac.assay = "ATAC",
   gene.links = 2,
-  distance = 250000,
-  url.link = "https://figshare.com/ndownloader/files/38644505"
+  distance = 5e+05,
+  url.link = "https://figshare.com/ndownloader/files/38794185"
 )
 }
 \arguments{
-\item{obj}{a \code{Seurat} object used as the prototype to generate simulated dataset
-other is \code{GRanges} list}
+\item{obj}{A \code{Seurat} object used as the prototype to generate simulated dataset.}
 
-\item{ntfs}{the number of eRegulons (TFs) to include in the simulated dataset}
+\item{ntfs}{The number of eRegulons (TFs) to include in the simulated dataset.}
 
-\item{ngenes}{the average number of genes in an eRegulon}
+\item{ngenes}{The average number of genes in an eRegulon.}
 
-\item{ncells}{the average number of cells in an eRegulon}
+\item{ncells}{The average number of cells in an eRegulon.}
 
-\item{all.genes}{the number of genes in the simulated \code{Seurat} object}
+\item{all.genes}{the number of genes in the simulated \code{Seurat} object.}
 
-\item{all.enhs}{the number of enhancers in the simulated \code{Seurat} object}
+\item{all.enhs}{The number of enhancers in the simulated \code{Seurat} object.}
 
-\item{all.cells}{the number of cells in the simulated \code{Seurat} object}
+\item{all.cells}{The number of cells in the simulated \code{Seurat} object.}
 
-\item{org}{the organism, e.g., hg38}
+\item{org}{The organism, hg38 by default.}
 
-\item{atac.assay}{the assay to save the scATAC-seq data}
+\item{atac.assay}{The scATAC-seq assay.}
 
-\item{gene.links}{the average number of enhancers linked to each gene in an eRegulon}
+\item{gene.links}{The average number of enhancers linked to each gene in an eRegulon.}
 
-\item{distance}{the maximum distance between a gene and its linked enhancers}
+\item{distance}{The maximum distance between a gene and its linked enhancers.}
 }
 \value{
-returns a list composed of a eRegulon list and a \code{Seurat} object
+Returns a list composed of an eRegulon list and a \code{Seurat} object.
+each item of the simulated eRegulon contains the following attributes:
+\item{TF} {The TF of the eRegulon.}
+\item{genes} {Genes of the eRegulon.}
+\item{peaks} {Enhancers of the eRegulon.}
+\item{cells} {Cells where the eRegulon is active.}
 }
 \description{
-Get a simulated jointly profiled scRNA-seq and scATAC-seq data in which
-several enhancer regulons (eRegulons)
-are contained
+Simulate a jointly profiled scRNA-seq and scATAC-seq dataset in which
+several enhancer regulons (eRegulons) are contained.
+}
+\references{
+Li, Y., Ma, A., Wang, Y., Wang, C., Chen, S., Fu, H., Liu, B. and Ma, Q., 2022.
+Enhancer-driven gene regulatory networks inference from single-cell RNA-seq and ATAC-seq data.
+bioRxiv, pp.2022-12.
+
+Castro-Mondragon, J. A., Riudavets-Puig, R., Rauluseviciute, I., Berhanu Lemma, R.,
+Turchi, L., Blanc-Mathieu, R., ... & Mathelier, A. (2022).
+JASPAR 2022: the 9th release of the open-access database of transcription factor binding profiles.
+Nucleic acids research, 50(D1), D165-D173.
+
+Garcia-Alonso, L., Holland, C. H., Ibrahim, M. M., Turei, D., & Saez-Rodriguez, J. (2019).
+Benchmark and integration of resources for the estimation of human transcription factor activities.
+Genome research, 29(8), 1363-1375.
 }

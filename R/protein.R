@@ -1,15 +1,22 @@
-#' Given a list of TFs, output associated proteins from BioGrid interacting with these TFs
-#'
+#' Given a list of TFs, output associated proteins from BioGrid interacting with these TFs.
+#' 
+#' @description Collaborations among proteins, e.g., transcription factors (TFs), contribute to the regulation 
+#' of target genes via binding to the same set of enhancers. To narrow down the scope of 
+#' enhancer regulons (eRegulons), we encourage users to select a TF list when running \code{stream2}. This function 
+#' aims to enlarge the TF list by incorporating the proteins interacting with TFs in the user-provided list.
+#' 
 #' @keywords internal
 #' @export
 #' @rdname get_associated_prot
 #' 
 #' @import dplyr
 #' 
-#' @param key.TFs The list of intersted TF,s NULL by default
+#' @param key.TFs The list of interested TFs.
 #' @param db The database of protein relations, including BioGrid, IntAct, STRING, and CORUM, 
-#' BioGrid by default
-#' @param org The organism, human by default
+#' BioGrid by default. Other databases have been under development and will be added soon.
+#' @param org The organism, human by default.
+#' 
+#' @return This function returns a list of TF names.
 #' 
 get_associated_prot <- function(key.TFs = NULL, db = "BioGrid", org = "human") {
   

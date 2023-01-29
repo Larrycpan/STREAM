@@ -17,25 +17,44 @@ get_cts_en_regs(
 )
 }
 \arguments{
-\item{obj}{An \code{Seurat} object used to get the eRegulons, NULL by default}
+\item{obj}{An \code{Seurat} object.}
 
-\item{peak.assay}{The chromatin accessibility assay, "ATAC" by default}
+\item{peak.assay}{The chromatin accessibility assay, "ATAC" by default.}
 
-\item{de.genes}{A list of differentially expressed genes (DEGs), NULL by default}
+\item{de.genes}{A list of differentially expressed genes (DEGs).}
 
-\item{cts.en.grns}{Cell-type-specific eGRNs, NULL by default}
+\item{cts.en.grns}{Cell-type-specific eGRNs saved in \code{GRanges} object, the name of each of which
+is cell type, and the \code{GRanges} object contains metadata columns "gene" and "TF".}
 
-\item{accessibility}{whether perform differential accessibility analysis, FALSE by default}
+\item{accessibility}{Whether perform differential accessibility analysis, FALSE by default.}
 
-\item{out.dir}{The directory to save the intermediate results or final results, "./" by default}
+\item{out.dir}{The directory to save the intermediate results or final results, "./" by default.}
 
-\item{padj.cutoff}{The cutoff of adjusted p-values of differential expression, 0.05 by default}
+\item{padj.cutoff}{The cutoff of adjusted p-values of differential expression, 0.05 by default.}
 
-\item{celltype}{The metadata column indicating the cell types or clusters, NULL by default}
+\item{celltype}{The metadata column indicating the cell types or clusters, "seurat_clusters" by default.}
 }
 \value{
-Returns a list of cell-type-specific eRegulons and plot dotplot-heatmap
+Returns a list of cell-type-specific eRegulons,  each of which contains the following attributes:
+\item{TF} {The TF of the cell-type-specific eRegulons.}
+\item{genes} {Genes of the cell-type-specific eRegulons.}
+\item{enhancers} {Enhancers of the cell-type-specific eRegulons.}
+\item{cells} {Cells where the celltype.}
+\item{links} {The enhancer-gene relations saved in \code{GRanges} object.}
+\item{celltype} {The celltype of the cell-type-specific eRegulons.}
 }
 \description{
-Identify cell-type-specific enhancer regulons (eRegulons)
+Enhancer regulons (eRegulons) are active in various cell subpopulations. Some
+of them may be enriched in one or more cell types. The successful identification of eRegulons
+at the single-cell level can improve the detection of heterogeneous transcriptional regulatory
+mechanisms across various cell types and allows for reliable constructions of global gene regulatory
+networks encoded in complex diseases. Hence, it is critical to study cell-type-specific eRegulons.
+eRegulons specific to a cell type are called cell-type-specific eRegulons. This function takes as
+input a \code{Seurat} object (composed of scRNA-seq and scATAC-seq) and cell-type-specific enhancer-drive
+gene regulatory networks (eGRNs) and then identify the cell-type-specific eRegulons in each cell type/cluster.
+}
+\references{
+Li, Y., Ma, A., Wang, Y., Wang, C., Chen, S., Fu, H., Liu, B. and Ma, Q., 2022.
+Enhancer-driven gene regulatory networks inference from single-cell RNA-seq and ATAC-seq data.
+bioRxiv, pp.2022-12.
 }

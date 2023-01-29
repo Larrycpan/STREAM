@@ -8,44 +8,57 @@
 #' as the cell sets where eRegulons are active. In addition, this function determines the number of eRegulons 
 #' in a dataset by submodular optimization.
 #' 
-#' @param obj A \code{Seurat} object composed of both scRNA-seq and scATAC-seq assays
+#' @param obj A \code{Seurat} object composed of both scRNA-seq and scATAC-seq assays.
 #' @param top.peaks The number of top-ranked peaks to identify the core part of hybrid biclusters (HBCs),
-#' 3000 by default
-#' @param min.cells The cutoff of minimum number of cells for quality control (QC), 10 by default
-#' @param out.dir The directory to save the intermediate or final results, "./" by default
-#' @param org The organism version, hg38 by default
-#' @param top.ngenes The number of genes composing the core part of an HBC, 5 by default
-#' @param c.cutoff The cutoff of consistency during hybrid biclustering process, 1.0 by default
-#' @param n.blocks The cutoff of the maximum number of blocks output by IRIS-FGM, 100 by default
-#' @param min.eRegs The minimum number of enhancer regulons (eRegulons) to output, 100 by default
-#' @param peak.assay The scATAC-seq assay, "ATAC" by default
-#' @param distance The distance cutoff to build enhancer-enhancer relations, 5e+05 by default
-#' @param BlockOverlap The cutoff of maximum overlap between blocks output by \code{IRIS-FGM}, 0.50 by default
-#' @param Extension The consistency level to expand a block by \code{IRIS-FGM}, 0.70 by default
+#' 3000 by default.
+#' @param min.cells The cutoff of minimum number of cells for quality control (QC), 10 by default.
+#' @param out.dir The directory to save the intermediate or final results, "./" by default.
+#' @param org The organism version, hg38 by default.
+#' @param top.ngenes The number of genes composing the core part of an HBC, 5 by default.
+#' @param c.cutoff The cutoff of consistency during hybrid biclustering process, 1.0 by default.
+#' @param n.blocks The cutoff of the maximum number of blocks output by IRIS-FGM, 100 by default.
+#' @param min.eRegs The minimum number of enhancer regulons (eRegulons) to output, 100 by default.
+#' @param peak.assay The scATAC-seq assay, "ATAC" by default.
+#' @param distance The distance cutoff to build enhancer-enhancer relations, 5e+05 by default.
+#' @param BlockOverlap The cutoff of maximum overlap between blocks output by \code{IRIS-FGM}, 0.50 by default.
+#' @param Extension The consistency level to expand a block by \code{IRIS-FGM}, 0.70 by default.
 #' @param intra.cutoff The cutoff to calculate pairwise similarity among HBCs associated with the same TFs,
-#' 1.0 by default
+#' 1.0 by default.
 #' @param inter.cutoff The cutoff to compute pairwise similarity among genes in HBCs associated with different TFs,
-#' 0.80 by default
+#' 0.80 by default.
 #' @param peak.cutoff The cutoff to quantify pairwise similarity among enhancers in HBCs associated with 
-#' different TFs, 0.80 by default
+#' different TFs, 0.80 by default.
 #' @param var.genes The number of highly variable genes to predict used to identify the core part of HBCs,
-#' 3000 by default
+#' 3000 by default.
 #' @param KL Which method to use for measuring the score of HBCs, "min.exp" by default, i.e.,
-#' the smaller one between the numbers of genes and cells in a HBC
+#' the smaller one between the numbers of genes and cells in a HBC.
 #' @param quantile.cutoff The quantile cutoff of the ratio of HBC cells, where enhancers are accessible,
-#' 4 by default, indicating the top-25% among ranks
+#' 4 by default, indicating the top-25% among ranks.
 #' @param submod.step The step size of, i.e., the number of HBCs to add in each step during iteration,
-#'  for submodular optimization, 30 by default
+#'  for submodular optimization, 30 by default.
 #' @param filter_peaks_for_cicero Whether filter the peaks in a neighborhood of the \code{Signac} results 
-#' before running \code{cicero}, FALSE by default
-#' @param candidate.TFs The list of candidate TFs used to identify eRegulons and eGRNs, NULL by default
+#' before running \code{cicero}, FALSE by default.
+#' @param candidate.TFs The list of candidate TFs used to identify eRegulons and eGRNs, NULL by default.
 #'
 #' @rdname run_stream
 #' @importFrom dplyr %>%
 #' @export
 #' 
 #' @return When running on a \code{Seurat} object,
-#' returns a list of eRegulons saved in a nested list
+#' returns a list of eRegulons saved in a nested list, each of which contains the following attributes:
+#'    \item{terminal} {The \code{IRIS-FGM} block used to predict the eRegulon.}
+#'    \item{Tier} {The tier of the TF-enhancer relations: 1 represents JASPAR annotations; 
+#'    2 denotes motif scanning.}
+#'    \item{TF} {The TF of the eRegulon.}
+#'    \item{genes} {Genes of the eRegulon.}
+#'    \item{peaks} {Enhancers of the eRegulon.}
+#'    \item{cells} {Cells where the eRegulon is active.}
+#'    \item{atac.ratio} {The ratio of cells where the eRegulon enhancers are 
+#'    accessible against cells in which the eRegulon genes are expressed.}
+#'    \item{score} {The eRegulon score.}
+#'    \item{weight} {The eRegulon weight.}
+#'    \item{links} {The enhancer-gene relations saved in \code{GRanges} object.}
+#'    \item{seed} {The seed to obtain the eRegulon.}
 #' 
 #' @references Li, Y., Ma, A., Wang, Y., Wang, C., Chen, S., Fu, H., Liu, B. and Ma, Q., 2022. 
 #' Enhancer-driven gene regulatory networks inference from single-cell RNA-seq and ATAC-seq data. 
@@ -53,6 +66,19 @@
 #' @references Chang, Y., Allen, C., Wan, C., Chung, D., Zhang, C., Li, Z. and Ma, Q., 2021. 
 #' IRIS-FGM: an integrative single-cell RNA-Seq interpretation system for functional gene module analysis. 
 #' Bioinformatics, 37(18), pp.3045-3047.
+#' @references Xie, J., Ma, A., Zhang, Y., Liu, B., Cao, S., Wang, C., ... & Ma, Q. (2020). 
+#' QUBIC2: a novel and robust biclustering algorithm for analyses and interpretation of 
+#' large-scale RNA-Seq data. Bioinformatics, 36(4), 1143-1149.
+#' @references Stuart, T., Srivastava, A., Madad, S., Lareau, C. A., & Satija, R. (2021). 
+#' Single-cell chromatin state analysis with Signac. Nature methods, 18(11), 1333-1341.
+#' @references Pliner, H. A., Packer, J. S., McFaline-Figueroa, J. L., Cusanovich, 
+#' D. A., Daza, R. M., Aghamirzaie, D., ... & Trapnell, C. (2018). 
+#' Cicero predicts cis-regulatory DNA interactions from single-cell chromatin accessibility data. 
+#' Molecular cell, 71(5), 858-871.
+#' @references Castro-Mondragon, J. A., Riudavets-Puig, R., Rauluseviciute, I., Berhanu Lemma, R., 
+#' Turchi, L., Blanc-Mathieu, R., ... & Mathelier, A. (2022). 
+#' JASPAR 2022: the 9th release of the open-access database of transcription factor binding profiles. 
+#' Nucleic acids research, 50(D1), D165-D173.
 #' 
 run_stream <- function(obj = NULL,
                        candidate.TFs = NULL,
@@ -422,19 +448,36 @@ run_stream <- function(obj = NULL,
 #' @export
 #' @rdname create_rna_atac
 #'
-#' @param obj A \code{Seurat} object used as the prototype to generate simulated dataset
-#' @param ntfs The number of eRegulons (TFs) to include in the simulated dataset
-#' @param ngenes The average number of genes in an eRegulon
-#' @param ncells The average number of cells in an eRegulon
-#' @param org The organism, hg38 by default
-#' @param atac.assay The scATAC-seq assay
-#' @param gene.links The average number of enhancers linked to each gene in an eRegulon
-#' @param distance The maximum distance between a gene and its linked enhancers
-#' @param all.genes the number of genes in the simulated \code{Seurat} object
-#' @param all.enhs The number of enhancers in the simulated \code{Seurat} object
-#' @param all.cells The number of cells in the simulated \code{Seurat} object
+#' @param obj A \code{Seurat} object used as the prototype to generate simulated dataset.
+#' @param ntfs The number of eRegulons (TFs) to include in the simulated dataset.
+#' @param ngenes The average number of genes in an eRegulon.
+#' @param ncells The average number of cells in an eRegulon.
+#' @param org The organism, hg38 by default.
+#' @param atac.assay The scATAC-seq assay.
+#' @param gene.links The average number of enhancers linked to each gene in an eRegulon.
+#' @param distance The maximum distance between a gene and its linked enhancers.
+#' @param all.genes the number of genes in the simulated \code{Seurat} object.
+#' @param all.enhs The number of enhancers in the simulated \code{Seurat} object.
+#' @param all.cells The number of cells in the simulated \code{Seurat} object.
 #'
-#' @return Returns a list composed of an eRegulon list and a \code{Seurat} object
+#' @return Returns a list composed of an eRegulon list and a \code{Seurat} object.
+#' each item of the simulated eRegulon contains the following attributes:
+#'    \item{TF} {The TF of the eRegulon.}
+#'    \item{genes} {Genes of the eRegulon.}
+#'    \item{peaks} {Enhancers of the eRegulon.}
+#'    \item{cells} {Cells where the eRegulon is active.}
+#' 
+#' @references Li, Y., Ma, A., Wang, Y., Wang, C., Chen, S., Fu, H., Liu, B. and Ma, Q., 2022. 
+#' Enhancer-driven gene regulatory networks inference from single-cell RNA-seq and ATAC-seq data. 
+#' bioRxiv, pp.2022-12.
+#' @references Castro-Mondragon, J. A., Riudavets-Puig, R., Rauluseviciute, I., Berhanu Lemma, R., 
+#' Turchi, L., Blanc-Mathieu, R., ... & Mathelier, A. (2022). 
+#' JASPAR 2022: the 9th release of the open-access database of transcription factor binding profiles. 
+#' Nucleic acids research, 50(D1), D165-D173.
+#' @references Garcia-Alonso, L., Holland, C. H., Ibrahim, M. M., Turei, D., & Saez-Rodriguez, J. (2019). 
+#' Benchmark and integration of resources for the estimation of human transcription factor activities. 
+#' Genome research, 29(8), 1363-1375.
+#' 
 create_rna_atac <- function(obj = NULL, ntfs = 5, ngenes = 100,
                             ncells = 100, all.genes = 1000, all.enhs = 3000, all.cells = 1000,
                             org = "hg38", atac.assay = "ATAC", gene.links = 2,
@@ -621,16 +664,35 @@ create_rna_atac <- function(obj = NULL, ntfs = 5, ngenes = 100,
 #' @export
 #' @rdname get_cts_en_GRNs
 #'
-#' @param obj An \code{Seurat} object
-#' @param celltype The metadata column indicating the cell types or clusters, "seurat_clusters" by default
-#' @param en.regs A list of eRegulons
-#' @param peak.assay The chromatin accessibility assay, "ATAC" by default
-#' @param rna.dims The number of dimensions for RNA dimension reduction, 50 by default
-#' @param atac.dims The number of dimensions for ATAC dimension reduction, 50 by default
-#' @param out.dir The directory to save the intermediate results or final results, "./" by default
-#' @param padj.cutoff The cutoff of adjusted p-value of hyper-geometric test, 0.05 by default
-#' @return Returns a list of eGRNs in each cell type saved in \code{GRanges} object
+#' @param obj An \code{Seurat} object.
+#' @param celltype The metadata column indicating the cell types or clusters, "seurat_clusters" by default.
+#' @param en.regs A list of cell-type-specific eRegulons, each of which contains the following attributes:
+#'    \item{terminal} {The \code{IRIS-FGM} block used to predict the eRegulon.}
+#'    \item{Tier} {The tier of the TF-enhancer relations: 1 represents JASPAR annotations; 
+#'    2 denotes motif scanning.}
+#'    \item{TF} {The TF of the eRegulon.}
+#'    \item{genes} {Genes of the eRegulon.}
+#'    \item{peaks} {Enhancers of the eRegulon.}
+#'    \item{cells} {Cells where the eRegulon is active.}
+#'    \item{atac.ratio} {The ratio of cells where the eRegulon enhancers are 
+#'    accessible against cells in which the eRegulon genes are expressed.}
+#'    \item{score} {The eRegulon score.}
+#'    \item{weight} {The eRegulon weight.}
+#'    \item{links} {The enhancer-gene relations saved in \code{GRanges} object.}
+#'    \item{seed} {The seed to obtain the eRegulon.}
+#' @param peak.assay The chromatin accessibility assay, "ATAC" by default.
+#' @param rna.dims The number of dimensions for RNA dimension reduction, 50 by default.
+#' @param atac.dims The number of dimensions for ATAC dimension reduction, 50 by default.
+#' @param out.dir The directory to save the intermediate results or final results, "./" by default.
+#' @param padj.cutoff The cutoff of adjusted p-value of hyper-geometric test, 0.05 by default.
+#' 
+#' @return Returns a list of eGRNs in each cell type saved in \code{GRanges} object, the name of each of which 
+#' is cell type, and the \code{GRanges} object contains metadata columns "gene" and "TF".
 #'
+#'#' @references Li, Y., Ma, A., Wang, Y., Wang, C., Chen, S., Fu, H., Liu, B. and Ma, Q., 2022. 
+#' Enhancer-driven gene regulatory networks inference from single-cell RNA-seq and ATAC-seq data. 
+#' bioRxiv, pp.2022-12.
+#' 
 get_cts_en_GRNs <- function(obj = NULL, celltype = "seurat_clusters",
                             en.regs = NULL, peak.assay = "ATAC",
                             rna.dims = 50, atac.dims = 50,
@@ -753,17 +815,28 @@ get_cts_en_GRNs <- function(obj = NULL, celltype = "seurat_clusters",
 #' @export
 #' @rdname get_cts_en_regs
 #'
-#' @param obj An \code{Seurat} object
-#' @param celltype The metadata column indicating the cell types or clusters, "seurat_clusters" by default
-#' @param cts.en.grns Cell-type-specific eGRNs
-#' @param peak.assay The chromatin accessibility assay, "ATAC" by default
-#' @param de.genes A list of differentially expressed genes (DEGs)
-#' @param out.dir The directory to save the intermediate results or final results, "./" by default
-#' @param accessibility Whether perform differential accessibility analysis, FALSE by default
-#' @param padj.cutoff The cutoff of adjusted p-values of differential expression, 0.05 by default
+#' @param obj An \code{Seurat} object.
+#' @param celltype The metadata column indicating the cell types or clusters, "seurat_clusters" by default.
+#' @param cts.en.grns Cell-type-specific eGRNs saved in \code{GRanges} object, the name of each of which 
+#' is cell type, and the \code{GRanges} object contains metadata columns "gene" and "TF".
+#' @param peak.assay The chromatin accessibility assay, "ATAC" by default.
+#' @param de.genes A list of differentially expressed genes (DEGs).
+#' @param out.dir The directory to save the intermediate results or final results, "./" by default.
+#' @param accessibility Whether perform differential accessibility analysis, FALSE by default.
+#' @param padj.cutoff The cutoff of adjusted p-values of differential expression, 0.05 by default.
 #'
-#' @return Returns a list of cell-type-specific eRegulons and plot dotplot-heatmap
+#' @return Returns a list of cell-type-specific eRegulons,  each of which contains the following attributes:
+#'    \item{TF} {The TF of the cell-type-specific eRegulons.}
+#'    \item{genes} {Genes of the cell-type-specific eRegulons.}
+#'    \item{enhancers} {Enhancers of the cell-type-specific eRegulons.}
+#'    \item{cells} {Cells where the celltype.}
+#'    \item{links} {The enhancer-gene relations saved in \code{GRanges} object.}
+#'    \item{celltype} {The celltype of the cell-type-specific eRegulons.}
 #'
+#' @references Li, Y., Ma, A., Wang, Y., Wang, C., Chen, S., Fu, H., Liu, B. and Ma, Q., 2022. 
+#' Enhancer-driven gene regulatory networks inference from single-cell RNA-seq and ATAC-seq data. 
+#' bioRxiv, pp.2022-12.
+#' 
 get_cts_en_regs <- function(obj = NULL, peak.assay = "ATAC", de.genes = NULL,
                             cts.en.grns = NULL, accessibility = FALSE, out.dir = "./",
                             min.pct = 0.25, logfc.threshold = 0.25, padj.cutoff = 0.05) {
@@ -835,7 +908,7 @@ get_cts_en_regs <- function(obj = NULL, peak.assay = "ATAC", de.genes = NULL,
 
 
 #' Calculate the precision, recall, and f-scores of overlaps between 
-#' two \code{GRanges} objects indicating enhancer-gene relations
+#' two \code{GRanges} objects indicating enhancer-gene relations.
 #' 
 #' @description Given two \code{GRanges} objects, each of which has the meta column named 
 #' "gene", this function calculates the overlaps between them. Based on the calculated overlaps, 
@@ -847,10 +920,25 @@ get_cts_en_regs <- function(obj = NULL, peak.assay = "ATAC", de.genes = NULL,
 #' @export
 #' @rdname intersect_enhancer_gene_relations
 #' 
-#' @param x The first \code{GRanges} object saving enhancer-gene relations
-#' @param y The second \code{GRanges} object saving enhancer-gene relations
-#' @return Return a \code{data.frame} indicating overlapped \code{GRanges} objects and 
-#' p-values
+#' @param x The first \code{GRanges} object saving enhancer-gene relations.
+#' @param y The second \code{GRanges} object saving enhancer-gene relations.
+#' @return Return a \code{data.frame} indicating overlapped \code{GRanges} objects, 
+#' containing the following columns:
+#'    \item{x.peak} {The enhancer in the first \code{GRanges} object for each pair of 
+#'    overlapped \code{GRanges} objects.}
+#'    \item{y.peak} {The enhancer in the second \code{GRanges} object for each pair of 
+#'    overlapped \code{GRanges} objects.}
+#'    \item{gene} {The gene for each pair of 
+#'    overlapped \code{GRanges} objects.}
+#'
+#' @references Li, Y., Ma, A., Wang, Y., Wang, C., Chen, S., Fu, H., Liu, B. and Ma, Q., 2022. 
+#' Enhancer-driven gene regulatory networks inference from single-cell RNA-seq and ATAC-seq data. 
+#' bioRxiv, pp.2022-12.
+#' @references Gao, T., & Qian, J. (2020). EnhancerAtlas 2.0: an updated resource with enhancer 
+#' annotation in 586 tissue/cell types across nine species. Nucleic acids research, 48(D1), D58-D64.
+#' @references Gao, T., Zheng, Z., Pan, Y., Zhu, C., Wei, F., Yuan, J., ... & Qian, J. (2022). 
+#' scEnhancer: a single-cell enhancer resource with annotation across hundreds of tissue/cell 
+#' types in three species. Nucleic acids research, 50(D1), D371-D379.
 #' 
 intersect_enhancer_gene_relations <- function(x, y) {
   
@@ -883,13 +971,31 @@ intersect_enhancer_gene_relations <- function(x, y) {
 #' @export
 #' @rdname intersect_enhancer_gene_relations_in_batch
 #' 
-#' @param link.pairs The first list of \code{GRanges} objects saving enhancer-gene relations
-#' @param ep.ll The second list of \code{GRanges} objects saving enhancer-gene relations
+#' @param link.pairs The first list of \code{GRanges} objects saving enhancer-gene relations.
+#' @param ep.ll The second list of \code{GRanges} objects saving enhancer-gene relations.
 #' @param only.overlap Only consider the \code{GRanges} objects of which genes were overlapped against databases, 
-#' TRUE by default
+#' TRUE by default.
 #' @param max.score Which score will be used to select the best query-hit pairs of \code{GRanges} objects,
-#' "precision" by default
-#' @return Returns a \code{data.frame} to indicate the query-hit pairs as well as precision, recall, and f-score
+#' "precision" by default.
+#' 
+#' @return Returns a \code{data.frame} to indicate the query-hit pairs as well as precision, recall, and f-score. 
+#' The \code{data.frame} contains the following columns:
+#'    \item{EP} {The ID of overlapped enhancer-gene pairs in databases.}
+#'    \item{precision} {The precision of the overlaps between enhancer-gene relations between
+#'     enhancer regulons (eRegulons) and that in databases.}
+#'    \item{recall} {The recall of the overlaps between enhancer-gene relations between
+#'     eRegulons and that in databases.}
+#'    \item{fscore} {The f-score of the overlaps between enhancer-gene relations between
+#'     eRegulons and that in databases.}
+#' 
+#' @references Li, Y., Ma, A., Wang, Y., Wang, C., Chen, S., Fu, H., Liu, B. and Ma, Q., 2022. 
+#' Enhancer-driven gene regulatory networks inference from single-cell RNA-seq and ATAC-seq data. 
+#' bioRxiv, pp.2022-12.
+#' @references Gao, T., & Qian, J. (2020). EnhancerAtlas 2.0: an updated resource with enhancer 
+#' annotation in 586 tissue/cell types across nine species. Nucleic acids research, 48(D1), D58-D64.
+#' @references Gao, T., Zheng, Z., Pan, Y., Zhu, C., Wei, F., Yuan, J., ... & Qian, J. (2022). 
+#' scEnhancer: a single-cell enhancer resource with annotation across hundreds of tissue/cell 
+#' types in three species. Nucleic acids research, 50(D1), D371-D379.
 #' 
 intersect_enhancer_gene_relations_in_batch <- function(link.pairs, ep.ll, 
                                                        only.overlap = FALSE, 
@@ -948,12 +1054,20 @@ intersect_enhancer_gene_relations_in_batch <- function(link.pairs, ep.ll,
 #' @export
 #' @rdname intersect_peaks
 #' 
-#' @param x The first \code{GRanges} object or \code{data.frame}
-#' @param y The first \code{GRanges} object or \code{data.frame}
-#' @param n.times The number of times of permutation, 1000 by default
-#' @param alternative The direction of alternative hypothesis, "greater" by default
-#' @return Return a numeric p-value
+#' @param x The first \code{GRanges} object or \code{data.frame}.
+#' @param y The first \code{GRanges} object or \code{data.frame}.
+#' @param n.times The number of times of permutation, 1000 by default.
+#' @param alternative The direction of alternative hypothesis, "greater" by default.
+#' 
+#' @return Return a numeric p-value.
 #'
+#' @references Li, Y., Ma, A., Wang, Y., Wang, C., Chen, S., Fu, H., Liu, B. and Ma, Q., 2022. 
+#' Enhancer-driven gene regulatory networks inference from single-cell RNA-seq and ATAC-seq data. 
+#' bioRxiv, pp.2022-12.
+#' @references Gel, B., Díez-Villanueva, A., Serra, E., Buschbeck, M., Peinado, M. A., & Malinverni, R. (2016). 
+#' regioneR: an R/Bioconductor package for the association analysis of genomic regions based on permutation tests. 
+#' Bioinformatics, 32(2), 289-291.
+#' 
 intersect_peaks <- function(x, y, n.times = 100, alternative = "greater") {
   
   # Calculate intersections
@@ -973,13 +1087,20 @@ intersect_peaks <- function(x, y, n.times = 100, alternative = "greater") {
 #' @export
 #' @rdname intersect_peaks_in_batch
 #' 
-#' @param x.ll The first list of \code{GRanges} objects
-#' @param y.ll The first list of \code{GRanges} objects
-#' @param n.times The number of times of permutation, 1000 by default
+#' @param x.ll The first list of \code{GRanges} objects.
+#' @param y.ll The first list of \code{GRanges} objects.
+#' @param n.times The number of times of permutation, 1000 by default.
 #' 
 #' @return Returns a \code{data.frame} composed of the IDs of significantly overlapped 
-#' \code{GRanges} objects and p-values
+#' \code{GRanges} objects and p-values.
 #'
+#' @references Li, Y., Ma, A., Wang, Y., Wang, C., Chen, S., Fu, H., Liu, B. and Ma, Q., 2022. 
+#' Enhancer-driven gene regulatory networks inference from single-cell RNA-seq and ATAC-seq data. 
+#' bioRxiv, pp.2022-12.
+#' @references Gel, B., Díez-Villanueva, A., Serra, E., Buschbeck, M., Peinado, M. A., & Malinverni, R. (2016). 
+#' regioneR: an R/Bioconductor package for the association analysis of genomic regions based on permutation tests. 
+#' Bioinformatics, 32(2), 289-291.
+#' 
 intersect_peaks_in_batch <- function(x.ll, y.ll, n.times = 100) {
   
   message ("Perform significance test between two lists composed of ", 
@@ -1011,9 +1132,16 @@ intersect_peaks_in_batch <- function(x.ll, y.ll, n.times = 100) {
 #' @export
 #' @rdname enrich_genes
 #' 
-#' @param regs The list of enhancer regulons (eRegulons) or cell-type-specific eRegulons
-#' @param dbs The list of databases to run enrichment analysis, c("GO", "KEGG") by default
-#' @param org The organism, "human" by default
+#' @param regs The list of enhancer regulons (eRegulons) or cell-type-specific eRegulons.
+#' @param dbs The list of databases to run enrichment analysis, c("GO", "KEGG") by default.
+#' @param org The organism, "human" by default.
+#' 
+#' @references Li, Y., Ma, A., Wang, Y., Wang, C., Chen, S., Fu, H., Liu, B. and Ma, Q., 2022. 
+#' Enhancer-driven gene regulatory networks inference from single-cell RNA-seq and ATAC-seq data. 
+#' bioRxiv, pp.2022-12.
+#' @references Kuleshov, M. V., Jones, M. R., Rouillard, A. D., Fernandez, N. F., Duan, Q., 
+#' Wang, Z., ... & Ma'ayan, A. (2016). Enrichr: a comprehensive gene set enrichment analysis web 
+#' server 2016 update. Nucleic acids research, 44(W1), W90-W97.
 #' 
 enrich_genes <- function(regs = NULL, dbs = c("GO", "KEGG"), 
                          org = "human" ) {

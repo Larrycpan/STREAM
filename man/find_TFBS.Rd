@@ -4,7 +4,7 @@
 \alias{find_TFBS}
 \title{Annotate enhancers with TFs}
 \usage{
-find_TFBS(m.atac, TFBS.list, org = "hg38")
+find_TFBS(peaks, TFBS.list, org = "hg38", candidate.TFs = NULL)
 }
 \description{
 Annotate enhancers with TFs

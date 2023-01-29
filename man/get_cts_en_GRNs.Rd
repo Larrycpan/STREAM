@@ -6,7 +6,7 @@
 \usage{
 get_cts_en_GRNs(
   obj = NULL,
-  celltype = NULL,
+  celltype = "seurat_clusters",
   en.regs = NULL,
   peak.assay = "ATAC",
   rna.dims = 50,
@@ -16,25 +16,49 @@ get_cts_en_GRNs(
 )
 }
 \arguments{
-\item{obj}{An \code{Seurat} object used to get the eRegulons, NULL by default}
+\item{obj}{An \code{Seurat} object.}
 
-\item{celltype}{The metadata column indicating the cell types or clusters, NULL by default}
+\item{celltype}{The metadata column indicating the cell types or clusters, "seurat_clusters" by default.}
 
-\item{en.regs}{A list of eRegulons, NULL by default}
+\item{en.regs}{A list of cell-type-specific eRegulons, each of which contains the following attributes:
+\item{terminal} {The \code{IRIS-FGM} block used to predict the eRegulon.}
+\item{Tier} {The tier of the TF-enhancer relations: 1 represents JASPAR annotations;
+2 denotes motif scanning.}
+\item{TF} {The TF of the eRegulon.}
+\item{genes} {Genes of the eRegulon.}
+\item{peaks} {Enhancers of the eRegulon.}
+\item{cells} {Cells where the eRegulon is active.}
+\item{atac.ratio} {The ratio of cells where the eRegulon enhancers are
+accessible against cells in which the eRegulon genes are expressed.}
+\item{score} {The eRegulon score.}
+\item{weight} {The eRegulon weight.}
+\item{links} {The enhancer-gene relations saved in \code{GRanges} object.}
+\item{seed} {The seed to obtain the eRegulon.}}
 
-\item{peak.assay}{The chromatin accessibility assay, "ATAC" by default}
+\item{peak.assay}{The chromatin accessibility assay, "ATAC" by default.}
 
-\item{rna.dims}{The number of dimensions for RNA dimension reduction, 50 by default}
+\item{rna.dims}{The number of dimensions for RNA dimension reduction, 50 by default.}
 
-\item{atac.dims}{The number of dimensions for ATAC dimension reduction, 50 by default}
+\item{atac.dims}{The number of dimensions for ATAC dimension reduction, 50 by default.}
 
-\item{padj.cutoff}{The cutoff of adjusted p-value of hyper-geometric test, 0.05 by default}
+\item{padj.cutoff}{The cutoff of adjusted p-value of hyper-geometric test, 0.05 by default.}
 
-\item{out.dir}{The directory to save the intermediate results or final results, "./" by default}
+\item{out.dir}{The directory to save the intermediate results or final results, "./" by default.}
 }
 \value{
-Returns a list of eGRNs saved in \code{GRanges} object
+Returns a list of eGRNs in each cell type saved in \code{GRanges} object, the name of each of which
+is cell type, and the \code{GRanges} object contains metadata columns "gene" and "TF".
+
+#' @references Li, Y., Ma, A., Wang, Y., Wang, C., Chen, S., Fu, H., Liu, B. and Ma, Q., 2022.
+Enhancer-driven gene regulatory networks inference from single-cell RNA-seq and ATAC-seq data.
+bioRxiv, pp.2022-12.
 }
 \description{
-Predict cell-type-specific enhancer-driven gene regulatory networks (eGRNs)
+Transcription factors (TFs) interact with chromatin regions (herein we call them enhancers),
+to regulate the downstream target genes. Joint profiling of scRNA-seq and scATAC-seq shed light upon
+gene expression and chromatin accessibility in each cell, providing a great opportunity to inspect
+the underlying gene regulatory mechanisms in different cell types. Enhancer-driven
+gene regulatory networks (eGRNs) are gene regulatory networks (GRNs) in which TFs regulate their target genes
+via binding accessible enhancers in a cell type/state/subpopulation. This function takes as input a
+\code{Seurat} object and a list of eRegulons, and then outputs cell-type-specific eGRNs.
 }

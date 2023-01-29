@@ -4,14 +4,14 @@
 \name{stream2-package}
 \alias{stream2}
 \alias{stream2-package}
-\title{stream2}
+\title{\code {stream2} package}
 \description{
 We present a new algorithm, STREAM, for enhancer-driven gene regulatory network (eGRN) inference from transcriptome and chromatin accessibility profiled from the same single cell populations. The algorithm substantially improves the prediction accuracy of relations among transcription factors (TFs), enhancers, and genes, by achieving global optimization based on two key new ideas: (i) we developed the Steiner forest problem (SFP) model based on a heterogeneous graph to identify the set of highly confident enhancer-gene relations which underlie a context-specific functional gene module (FGM); and (ii) we designed a hybrid biclustering pipeline integrated with submodular optimization for inferring eGRNs by identifying the optimal subset from a set of hybrid biclusters (HBCs), each of which represents co-regulated genes by the same TF and, co-accessible enhancers bound by the same TF, occurring over a subset of cells. These two key ideas are embedded in an iterative framework for eGRN inference through by finding patterns in a pair of transcriptome and chromatin accessibility matrices. Benchmarking analysis shows that the performance, assessed by f-scores, precision, or recall, was significantly improved by our program compared to four other state-of-the-art tools on ten single-cell sequencing datasets from seven sequencing techniques. The applicative powerbility of STREAM was demonstrated through two biological case studies. By implementing STREAM on an Alzheimer’s disease dataset over a time coursediffuse small lymphocytic lymphoma dataset, we showcased its capability to identify TF-enhancer-gene relations associated with pseudotime and investigate the changing of enhancer-gene alongside cell lineagesexcavated the key TF-enhancer-gene relations and cooperation among TFs underlying diseased cell types. Additionally, by implementing STREAM on a diffuse small lymphocytic lymphoma dataset, we excavated the key TF-enhancer-gene relations and cooperation among TFs underlying diseased cell types.STREAM showcased its capability to identify TF-enhancer-gene relations which were associated with pseudotime and investigate the changing of enhancer-gene alongside cell lineages from an Alzheimer’s disease dataset over a time course.
 }
 \seealso{
 Useful links:
 \itemize{
-  \item \url{https://github.com/YangLi-Bio/stream_core}
+  \item \url{https://github.com/YangLi-Bio/stream2}
 }
 
 }
@@ -31,3 +31,4 @@ Other contributors:
 }
 
 }
+\keyword{internal}

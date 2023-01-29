@@ -2,16 +2,16 @@
 % Please edit documentation in R/cistrome_tools.R
 \name{link_peaks_to_genes}
 \alias{link_peaks_to_genes}
-\title{Link enhancers to genes witrhin a distance cutoff}
+\title{Link enhancers to genes within a distance cutoff}
 \usage{
 link_peaks_to_genes(
   peak.obj = c("chrX-192989-220023", "chr2-178095031-178129859"),
   gene.obj = c("PLCXD1", "NFE2L2"),
   org = "hg38",
-  distance = 250000
+  distance = 5e+05
 )
 }
 \description{
-Link enhancers to genes witrhin a distance cutoff
+Link enhancers to genes within a distance cutoff
 }
 \keyword{internal}

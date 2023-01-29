@@ -2,7 +2,7 @@
 % Please edit documentation in R/multiome_tools.R
 \name{subset_object}
 \alias{subset_object}
-\title{Subset a \code{Seurat} object}
+\title{Subset a \code{Seurat} object based on \code{IRIS-FGM} blocks}
 \usage{
 subset_object(
   LTMG.obj,
@@ -15,6 +15,6 @@ subset_object(
 )
 }
 \description{
-Subset a \code{Seurat} object
+Subset a \code{Seurat} object based on \code{IRIS-FGM} blocks
 }
 \keyword{internal}

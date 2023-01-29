@@ -5,6 +5,7 @@
 \title{Seeding based on Steiner forest problem (SFP) model}
 \usage{
 SFP_seeding(
+  motif.obj = NULL,
   G.list,
   obj.list,
   bound.TFs,
@@ -19,7 +20,10 @@ SFP_seeding(
   score.cutoff = 1,
   TOP_TFS = Inf,
   ifWeighted = TRUE,
-  quantile.cutoff = 4
+  quantile.cutoff = 4,
+  peak.assay = "ATAC",
+  ifPutativeTFs = FALSE,
+  padj.cutoff = 0.05
 )
 }
 \description{
