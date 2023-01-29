@@ -46,19 +46,19 @@
 #' 
 #' @return When running on a \code{Seurat} object,
 #' returns a list of eRegulons saved in a nested list, each of which contains the following attributes:
-#'    \item{terminal} {The \code{IRIS-FGM} block used to predict the eRegulon.}
-#'    \item{Tier} {The tier of the TF-enhancer relations: 1 represents JASPAR annotations; 
+#'    \item{terminal}{The \code{IRIS-FGM} block used to predict the eRegulon.}
+#'    \item{Tier}{The tier of the TF-enhancer relations: 1 represents JASPAR annotations; 
 #'    2 denotes motif scanning.}
-#'    \item{TF} {The TF of the eRegulon.}
-#'    \item{genes} {Genes of the eRegulon.}
-#'    \item{peaks} {Enhancers of the eRegulon.}
-#'    \item{cells} {Cells where the eRegulon is active.}
-#'    \item{atac.ratio} {The ratio of cells where the eRegulon enhancers are 
+#'    \item{TF}{The TF of the eRegulon.}
+#'    \item{genes}{Genes of the eRegulon.}
+#'    \item{peaks}{Enhancers of the eRegulon.}
+#'    \item{cells}{Cells where the eRegulon is active.}
+#'    \item{atac.ratio}{The ratio of cells where the eRegulon enhancers are 
 #'    accessible against cells in which the eRegulon genes are expressed.}
-#'    \item{score} {The eRegulon score.}
-#'    \item{weight} {The eRegulon weight.}
-#'    \item{links} {The enhancer-gene relations saved in \code{GRanges} object.}
-#'    \item{seed} {The seed to obtain the eRegulon.}
+#'    \item{score}{The eRegulon score.}
+#'    \item{weight}{The eRegulon weight.}
+#'    \item{links}{The enhancer-gene relations saved in \code{GRanges} object.}
+#'    \item{seed}{The seed to obtain the eRegulon.}
 #' 
 #' @references Li, Y., Ma, A., Wang, Y., Wang, C., Chen, S., Fu, H., Liu, B. and Ma, Q., 2022. 
 #' Enhancer-driven gene regulatory networks inference from single-cell RNA-seq and ATAC-seq data. 
@@ -462,10 +462,10 @@ run_stream <- function(obj = NULL,
 #'
 #' @return Returns a list composed of an eRegulon list and a \code{Seurat} object.
 #' each item of the simulated eRegulon contains the following attributes:
-#'    \item{TF} {The TF of the eRegulon.}
-#'    \item{genes} {Genes of the eRegulon.}
-#'    \item{peaks} {Enhancers of the eRegulon.}
-#'    \item{cells} {Cells where the eRegulon is active.}
+#'    \item{TF}{The TF of the eRegulon.}
+#'    \item{genes}{Genes of the eRegulon.}
+#'    \item{peaks}{Enhancers of the eRegulon.}
+#'    \item{cells}{Cells where the eRegulon is active.}
 #' 
 #' @references Li, Y., Ma, A., Wang, Y., Wang, C., Chen, S., Fu, H., Liu, B. and Ma, Q., 2022. 
 #' Enhancer-driven gene regulatory networks inference from single-cell RNA-seq and ATAC-seq data. 
@@ -667,19 +667,19 @@ create_rna_atac <- function(obj = NULL, ntfs = 5, ngenes = 100,
 #' @param obj An \code{Seurat} object.
 #' @param celltype The metadata column indicating the cell types or clusters, "seurat_clusters" by default.
 #' @param en.regs A list of cell-type-specific eRegulons, each of which contains the following attributes:
-#'    \item{terminal} {The \code{IRIS-FGM} block used to predict the eRegulon.}
-#'    \item{Tier} {The tier of the TF-enhancer relations: 1 represents JASPAR annotations; 
+#'    \item{terminal}{The \code{IRIS-FGM} block used to predict the eRegulon.}
+#'    \item{Tier}{The tier of the TF-enhancer relations: 1 represents JASPAR annotations; 
 #'    2 denotes motif scanning.}
-#'    \item{TF} {The TF of the eRegulon.}
-#'    \item{genes} {Genes of the eRegulon.}
-#'    \item{peaks} {Enhancers of the eRegulon.}
-#'    \item{cells} {Cells where the eRegulon is active.}
-#'    \item{atac.ratio} {The ratio of cells where the eRegulon enhancers are 
+#'    \item{TF}{The TF of the eRegulon.}
+#'    \item{genes}{Genes of the eRegulon.}
+#'    \item{peaks}{Enhancers of the eRegulon.}
+#'    \item{cells}{Cells where the eRegulon is active.}
+#'    \item{atac.ratio}{The ratio of cells where the eRegulon enhancers are 
 #'    accessible against cells in which the eRegulon genes are expressed.}
-#'    \item{score} {The eRegulon score.}
-#'    \item{weight} {The eRegulon weight.}
-#'    \item{links} {The enhancer-gene relations saved in \code{GRanges} object.}
-#'    \item{seed} {The seed to obtain the eRegulon.}
+#'    \item{score}{The eRegulon score.}
+#'    \item{weight}{The eRegulon weight.}
+#'    \item{links}{The enhancer-gene relations saved in \code{GRanges} object.}
+#'    \item{seed}{The seed to obtain the eRegulon.}
 #' @param peak.assay The chromatin accessibility assay, "ATAC" by default.
 #' @param rna.dims The number of dimensions for RNA dimension reduction, 50 by default.
 #' @param atac.dims The number of dimensions for ATAC dimension reduction, 50 by default.
@@ -826,12 +826,12 @@ get_cts_en_GRNs <- function(obj = NULL, celltype = "seurat_clusters",
 #' @param padj.cutoff The cutoff of adjusted p-values of differential expression, 0.05 by default.
 #'
 #' @return Returns a list of cell-type-specific eRegulons,  each of which contains the following attributes:
-#'    \item{TF} {The TF of the cell-type-specific eRegulons.}
-#'    \item{genes} {Genes of the cell-type-specific eRegulons.}
-#'    \item{enhancers} {Enhancers of the cell-type-specific eRegulons.}
-#'    \item{cells} {Cells where the celltype.}
-#'    \item{links} {The enhancer-gene relations saved in \code{GRanges} object.}
-#'    \item{celltype} {The celltype of the cell-type-specific eRegulons.}
+#'    \item{TF}{The TF of the cell-type-specific eRegulons.}
+#'    \item{genes}{Genes of the cell-type-specific eRegulons.}
+#'    \item{enhancers}{Enhancers of the cell-type-specific eRegulons.}
+#'    \item{cells}{Cells where the celltype.}
+#'    \item{links}{The enhancer-gene relations saved in \code{GRanges} object.}
+#'    \item{celltype}{The celltype of the cell-type-specific eRegulons.}
 #'
 #' @references Li, Y., Ma, A., Wang, Y., Wang, C., Chen, S., Fu, H., Liu, B. and Ma, Q., 2022. 
 #' Enhancer-driven gene regulatory networks inference from single-cell RNA-seq and ATAC-seq data. 
@@ -924,11 +924,11 @@ get_cts_en_regs <- function(obj = NULL, peak.assay = "ATAC", de.genes = NULL,
 #' @param y The second \code{GRanges} object saving enhancer-gene relations.
 #' @return Return a \code{data.frame} indicating overlapped \code{GRanges} objects, 
 #' containing the following columns:
-#'    \item{x.peak} {The enhancer in the first \code{GRanges} object for each pair of 
+#'    \item{x.peak}{The enhancer in the first \code{GRanges} object for each pair of 
 #'    overlapped \code{GRanges} objects.}
-#'    \item{y.peak} {The enhancer in the second \code{GRanges} object for each pair of 
+#'    \item{y.peak}{The enhancer in the second \code{GRanges} object for each pair of 
 #'    overlapped \code{GRanges} objects.}
-#'    \item{gene} {The gene for each pair of 
+#'    \item{gene}{The gene for each pair of 
 #'    overlapped \code{GRanges} objects.}
 #'
 #' @references Li, Y., Ma, A., Wang, Y., Wang, C., Chen, S., Fu, H., Liu, B. and Ma, Q., 2022. 
@@ -979,12 +979,12 @@ intersect_enhancer_gene_relations <- function(x, y) {
 #' 
 #' @return Returns a \code{data.frame} to indicate the query-hit pairs as well as precision, recall, and f-score. 
 #' The \code{data.frame} contains the following columns:
-#'    \item{EP} {The ID of overlapped enhancer-gene pairs in databases.}
-#'    \item{precision} {The precision of the overlaps between enhancer-gene relations between
+#'    \item{EP}{The ID of overlapped enhancer-gene pairs in databases.}
+#'    \item{precision}{The precision of the overlaps between enhancer-gene relations between
 #'     enhancer regulons (eRegulons) and that in databases.}
-#'    \item{recall} {The recall of the overlaps between enhancer-gene relations between
+#'    \item{recall}{The recall of the overlaps between enhancer-gene relations between
 #'     eRegulons and that in databases.}
-#'    \item{fscore} {The f-score of the overlaps between enhancer-gene relations between
+#'    \item{fscore}{The f-score of the overlaps between enhancer-gene relations between
 #'     eRegulons and that in databases.}
 #' 
 #' @references Li, Y., Ma, A., Wang, Y., Wang, C., Chen, S., Fu, H., Liu, B. and Ma, Q., 2022. 
