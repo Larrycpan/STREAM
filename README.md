@@ -7,22 +7,23 @@ STREAM combines the Steiner forest problem (SFP) model and submodular optimizati
 ![Figure_1_workflow_12122022](https://user-images.githubusercontent.com/35290254/207700357-5bc15019-4733-48b1-ad3f-7613769b8285.jpg)
 
 # Prerequisites
-- Seurat
-- Signac
-- cicero
-- qualV
-- GenomicRanges
-- gUtils
-- rTRM
-- ensdb.hsapiens.v75
-- ensdb.hsapiens.v86
-- ensdb.mmusculus.v75
-- ensdb.mmusculus.v79
 - bsgenome.mmusculus.ucsc.mm9
 - bsgenome.mmusculus.ucsc.mm10
 - bsgenome.hsapiens.ucsc.hg19
 - bsgenome.hsapiens.ucsc.hg38
+- cicero
+- ensdb.hsapiens.v75
+- ensdb.hsapiens.v86
+- ensdb.mmusculus.v75
+- ensdb.mmusculus.v79
+- GenomicRanges
+- glasso
+- gUtils
+- rTRM
+- Seurat
+- Signac
 - qlcMatrix
+- qualV
 
 # Installation
 The latest developmental version of STREAM can be downloaded from GitHub and installed from source by `devtools::install_github("YangLi-Bio/stream2")`.
