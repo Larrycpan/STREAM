@@ -12,6 +12,8 @@ STREAM combines the Steiner forest problem (SFP) model and submodular optimizati
 - cicero
 - qualV
 - GenomicRanges
+- gUtils
+- rTRM
 - ensdb.hsapiens.v75
 - ensdb.hsapiens.v86
 - ensdb.mmusculus.v75
