@@ -381,6 +381,7 @@ df_to_igraph_net <- function(df = NULL, color.df = NULL, vertex.frame.width = 0.
                              layout = "fr",
                              vertex.label.family = "Arial", vertex.label.color = "black", 
                              vertex.size = NULL, tf.cex = 6, enh.cex = 1, gene.cex = 2, 
+                             ifSaveRda = FALSE,
                              max.width = 5 ) {
   
   # Parameters
@@ -430,8 +431,16 @@ df_to_igraph_net <- function(df = NULL, color.df = NULL, vertex.frame.width = 0.
             plot = myellipse)
   
   
-  # Colors
+  # Directly save qsave files
   network <- graph_from_data_frame(d = links, vertices = nodes, directed = FALSE )
+  if (ifSaveRda) {
+    message ("Save the igraph object to file: ", 
+             path, title, ".qsave.")
+    qs::qsave(network, paste0(path, title, ".qsave"))
+  }
+  
+  
+  # Colors
   tf.color <- color.df[unique(df$TF)]
   tf.shape <- rep(tf.shape, length(unique(df$TF)))
   enh.shape <- rep(enh.shape, length(unique(df$enhancer)))
@@ -534,6 +543,15 @@ df_to_igraph_net <- function(df = NULL, color.df = NULL, vertex.frame.width = 0.
          vertex.label.family = vertex.label.family, vertex.label.color = vertex.label.color, 
          vertex.shape = vertex.shape, vertex.size = vertex.size, vertex.label = vertex.label,
          layout = igraph::layout_with_graphopt )
+  } else if (layout == "qgraph.fr") {
+    plot(network, vertex.color = vertex.color, vertex.frame.width = vertex.frame.width, 
+         vertex.frame.color = vertex.frame.color, edge.curved = edge.curved, edge.color = edge.color, 
+         vertex.label.family = vertex.label.family, vertex.label.color = vertex.label.color, 
+         vertex.shape = vertex.shape, vertex.size = vertex.size, vertex.label = vertex.label,
+         layout = qgraph::qgraph.layout.fruchtermanreingold(get.edgelist(network, names = FALSE), 
+                                                            vcount = vcount(network),
+                                                    area = 8 * (vcount(network) ^ 2), 
+                                                    repulse.rad = (vcount(network) ^ 3.1)) )
   }
   dev.off()
 }
@@ -560,10 +578,11 @@ df_to_igraph_net <- function(df = NULL, color.df = NULL, vertex.frame.width = 0.
 #' @param n.TFs The maximum number of top-ranked TFs to generate eGRN plot, 10 by default
 #' @param TFs The list of TFs for plotting
 #' @param layout The layout for plotting networks, "fr" by default
+#' @param ifSaveRda Whether save the \code{igraph} objects in a qsdave file
 #' 
 plot_eGRN <- function(en.grn = NULL, obj = NULL, peak.assay = "ATAC", n.links = 20, 
                       title = "temp", path = "./", format = ".png", n.TFs = 15, 
-                      layout = "fr", max.links = 5000,
+                      layout = "fr", max.links = 5000, ifSaveRda = FALSE,
                       TFs = NULL) {
   
   # Parameters
@@ -652,6 +671,7 @@ plot_eGRN <- function(en.grn = NULL, obj = NULL, peak.assay = "ATAC", n.links = 
     df = df, 
     title = title, path = path, 
     format = format, 
+    ifSaveRda = ifSaveRda,
     layout = layout
     )
 }

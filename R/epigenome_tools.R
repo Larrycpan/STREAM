@@ -64,7 +64,7 @@ get_genomic_range <- function(grs, cds, win) {
                            gsub("chr", "", as.character(GenomicRanges::seqnames(grs[win]))),
   ]
   monocle3::fData(win_range)$mean_bp <- (as.numeric(as.character(monocle3::fData(win_range)$bp1)) +
-                                           as.numeric(as.character(monocle3::fData(win_range)$bp2)))/2
+                                           as.numeric(as.character(monocle3::fData(win_range)$bp2))) / 2
   
   
   return(win_range)
@@ -153,9 +153,9 @@ calc_dist_matrix <- function(gene_range) {
 #' @keyword internal
 #' 
 estimate_distance_parameter <- function(cds,
-                                        window=500000,
-                                        maxit=100,
-                                        s=0.75,
+                                        window = 500000,
+                                        maxit = 100,
+                                        s = 0.75,
                                         sample_num = 100,
                                         distance_constraint = 250000,
                                         distance_parameter_convergence = 1e-22,
@@ -186,13 +186,13 @@ estimate_distance_parameter <- function(cds,
   distance_parameters_calced <- 0
   it <- 0
   
-  while(sample_num > distance_parameters_calced & it < max_sample_windows) {
+  while (sample_num > distance_parameters_calced & it < max_sample_windows) {
     it <- it + 1
     win <- sample(seq_len(length(grs)), 1)
     GL <- "Error"
     win_range <- get_genomic_range(grs, cds, win)
     
-    if (nrow(monocle3::exprs(win_range))<=1) {
+    if (nrow(monocle3::exprs(win_range)) <= 1) {
       next()
     }
     if (nrow(monocle3::exprs(win_range)) > max_elements) {
@@ -216,11 +216,11 @@ estimate_distance_parameter <- function(cds,
     distance_parameters_calced <- distance_parameters_calced + 1
   }
   
-  if(length(distance_parameters) < sample_num)
+  if (length(distance_parameters) < sample_num)
     warning(paste0("Could not calculate sample_num distance_parameters (",
                    length(distance_parameters), " were calculated) - see ",
                    "documentation details"))
-  if(length(distance_parameters) == 0)
+  if (length(distance_parameters) == 0)
     stop("No distance_parameters calculated")
   
   unlist(distance_parameters)
@@ -398,9 +398,10 @@ make_atac_cds <- function(input, binarize = FALSE ) {
 #' 
 run_cicero <- function(cds,
                        genomic_coords,
-                       window = 500000,
-                       silent=FALSE,
+                       window = 5e+5,
+                       silent = FALSE,
                        sample_num = 100 ) {
+  
   # Check input
   assertthat::assert_that(is(cds, "cell_data_set"))
   assertthat::assert_that(is.logical(silent))
@@ -412,11 +413,11 @@ run_cicero <- function(cds,
   
   if (!silent) print("Starting Cicero")
   if (!silent) print("Calculating distance_parameter value")
-  distance_parameters <- estimate_distance_parameter(cds, window=window,
-                                                     maxit=100, sample_num = sample_num,
-                                                     distance_constraint = 250000,
-                                                     distance_parameter_convergence = 1e-22,
-                                                     genomic_coords = genomic_coords)
+  distance_parameters <- estimate_distance_parameter (cds, window = window,
+                                                      maxit = 100, sample_num = sample_num,
+                                                      distance_constraint = 250000,
+                                                      distance_parameter_convergence = 1e-22,
+                                                      genomic_coords = genomic_coords)
   
   mean_distance_parameter <- mean(unlist(distance_parameters))
   
@@ -428,7 +429,7 @@ run_cicero <- function(cds,
                            genomic_coords = genomic_coords)
   
   if (!silent) print("Assembling connections")
-  all_cons <- assemble_connections(cicero_out, silent=silent)
+  all_cons <- assemble_connections(cicero_out, silent = silent)
   
   if (!silent) print("Done")
   all_cons

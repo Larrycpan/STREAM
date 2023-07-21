@@ -9,6 +9,7 @@
 #' in a dataset by submodular optimization.
 #' 
 #' @param obj A \code{Seurat} object composed of both scRNA-seq and scATAC-seq assays.
+#' @param qubic.path The path of the binary excutable file of QUBIC2, e.g., "/users/PAS1475/liyang/software/QUBIC2/qubic"
 #' @param top.peaks The number of top-ranked peaks to identify the core part of hybrid biclusters (HBCs),
 #' 3000 by default.
 #' @param min.cells The cutoff of minimum number of cells for quality control (QC), 10 by default.
@@ -83,6 +84,7 @@
 #' Nucleic acids research, 50(D1), D165-D173.
 #' 
 run_stream <- function(obj = NULL,
+                       qubic.path = "/users/PAS1475/liyang/software/QUBIC2/qubic",
                        candidate.TFs = NULL,
                        peak.assay = "ATAC",
                        var.genes = 3000,
@@ -126,7 +128,8 @@ run_stream <- function(obj = NULL,
 
 
   # Quality control
-  invisible(peaks.use <- rownames(obj[[peak.assay]])[as.vector(as.character(BSgenome::seqnames(obj[[peak.assay]]@ranges)) %in% GenomeInfoDb::standardChromosomes(obj[[peak.assay]]@ranges))])
+  invisible(peaks.use <- rownames(obj[[peak.assay]])[as.vector(as.character(BSgenome::seqnames(obj[[peak.assay]]@ranges)) %in% 
+                                                                 GenomeInfoDb::standardChromosomes(obj[[peak.assay]]@ranges))])
   obj <- subset(obj,
                 features = c(
                   rownames(obj[["RNA"]])[!grepl("\\.", rownames(obj[["RNA"]]))],
@@ -164,6 +167,8 @@ run_stream <- function(obj = NULL,
            " for regions in the ", peak.assay, " assay and add them to the feature metadata.")
   qs::qsave(obj, paste0(out.dir, "Obj_quality_ctr.qsave"))
   links.df <- filter_nearby_genes(obj = obj, peak.assay = peak.assay)
+  qs::qsave(links.df, paste0(out.dir, "Potential_enhancer_gene_pairs_within_1mb.qsave"))
+  message ("Wrote potential enhancer-gene pairs to file ", out.dir, "Potential_enhancer_gene_pairs_within_1mb.qsave")
   obj <- subset(x = obj, features = c(unique(links.df$peak),
                                       unique(links.df$gene)))
   obj <- obj[, Matrix::colSums(obj[['RNA']]@counts) > 0 &
@@ -229,45 +234,144 @@ run_stream <- function(obj = NULL,
              "which were saved to file: ", out.dir, "Putative_TF_binding_sites_on_enhs.qsave.")
   }
 
-
-  # LTMG modeling
-  LTMG.obj <- call_LTMG(obj = obj)
-  message ("Finished LTMG modeling for ", nrow(LTMG.obj@LTMG@LTMG_discrete),
-           " genes across ", ncol(LTMG.obj@LTMG@LTMG_discrete), " cells.\n",
-           "There are ", length(unique(range(LTMG.obj@LTMG@LTMG_discrete))),
-           " transcriptional regulatory states (TRSs) identified.")
+  
+  ##############################################################################
+  #                                                                            #
+  #         Perform LTMG modeling and biclustering via IRIS-FGM package        #
+  #                                                                            #
+  ##############################################################################
+  
+  
+  # LTMG.obj <- call_LTMG(obj = obj)
+  # ltmg.df <- as.data.frame(obj@assays$RNA@data) # get the expression matrix saved in a data frame
+  # ltmg.obj <- IRISFGM::ProcessData(IRISFGM::CreateIRISFGMObject(ltmg.df),
+  #                                  normalization = "cpm", IsImputation = F)
+  # LTMG.obj <- IRISFGM::RunLTMG(ltmg.obj, Gene_use = "all")
+  # LTMG_discrete <- LTMG.obj@LTMG@LTMG_discrete # the discretized matrix
+  # qs::qsave(LTMG.obj, paste0(out.dir, "LTMG_obj.qsave"))
+  # message ("Finished LTMG modeling for ", nrow(LTMG.obj@LTMG@LTMG_discrete),
+  #          " genes across ", ncol(LTMG.obj@LTMG@LTMG_discrete), " cells.\n",
+  #          "There are ", length(unique(range(LTMG.obj@LTMG@LTMG_discrete))),
+  #          " transcriptional regulatory states (TRSs) identified.")
 
 
   # Please uncomment the following command and make sure to set a correct working directory
   # so that the following command will generate intermediate files.
-  LTMG.obj <- IRISFGM::CalBinaryMultiSignal(LTMG.obj) # partition each gene into TRSs
-  LTMG.obj <- IRISFGM::RunBicluster(LTMG.obj, DiscretizationModel = "LTMG", OpenDual = FALSE,
-                         NumBlockOutput = n.blocks, BlockOverlap = BlockOverlap,
-                         Extension = Extension,
-                         BlockCellMin = min.cells)
-  message ("Identified ", max(LTMG.obj@BiCluster@CoReg_gene$Condition),
-           " IRIS-FGM biclusters from the LTMG matrix.\n",
-           "Saved the LTMG object to file: ", out.dir, "LTMG.qsave.")
-  qs::qsave(LTMG.obj, paste0(out.dir, "LTMG.qsave"))
+  # LTMG.obj <- IRISFGM::CalBinaryMultiSignal(LTMG.obj) # partition each gene into TRSs
+  # LTMG.obj <- IRISFGM::RunBicluster(LTMG.obj, DiscretizationModel = "LTMG", OpenDual = FALSE,
+  #                        NumBlockOutput = n.blocks, BlockOverlap = BlockOverlap,
+  #                        Extension = Extension,
+  #                        BlockCellMin = min.cells)
+  
+  
+  ##############################################################################
+  #                                                                            #
+  #   Perform LTMG modeling and biclustering directly based on source codes    #
+  #                                                                            #
+  ##############################################################################
+  
+  
+  # LTMG modeling
+  write.table(cbind(o = rownames(obj@assays$RNA@counts), as.data.frame(obj@assays$RNA@counts)), 
+            paste0(out.dir, "rna_counts.txt"), quote = FALSE, row.names = FALSE, sep = "\t")
+  message ("Wrote the gene expression count matrix to ", out.dir, "rna_counts.txt")
+  
+  message ("\nBegan LTMG modeling ===================")
+  system(paste0(qubic.path, " -i rna_counts.txt -F -R"))
+  message ("\nEnd LTMG modeling ===================")
+
+  LTMG_discrete <- read.table(paste0(out.dir, "rna_counts.txt.em.chars"), header = TRUE)
+  rownames(LTMG_discrete) <- LTMG_discrete$o
+  LTMG_discrete <- LTMG_discrete[, -1]
+  message ("Read the discretized matrix from: ", out.dir, "rna_counts.txt.em.chars (", 
+           nrow(LTMG_discrete), " x ", ncol(LTMG_discrete), ")")
+  
+  
+  # QUBIC2 biclustering
+  message ("\nBegan QUBIC biclustering ===================")
+  system(paste0(qubic.path, " -i rna_counts.txt.chars -d -f ", BlockOverlap, 
+                " -o ", n.blocks, " -c ", Extension, "-k ", min.cells))
+  message ("End QUBIC biclustering ===================\n")
+  
+  
+  # Read QUBIC cells
+  qubic.cells <- readLines(paste0(out.dir, "rna_counts.txt.chars.blocks")) %>% 
+    grep(pattern = "^ Conds ", value = TRUE) %>% strsplit(., split = " ")
+  CoCond_cell <- pblapply(seq_along(qubic.cells), function(i) {
+    x <- qubic.cells[[i]]
+    cell_name <- x[-(1:3)] %>% strsplit(., split = "_") %>% sapply(., "[", 1) %>% unique
+    data.frame(
+      cell_name = cell_name,
+      Condition = rep(i, length(cell_name))
+    )
+  }) %>% Reduce("rbind", .)
+  message ("Read co-conditioned cells (n = ", length(unique(CoCond_cell$cell_name)), 
+           ") in ", length(unique(CoCond_cell$Condition)), " biclusters")
+  
+  
+  # Read QUBIC genes
+  qubic.genes <- readLines(paste0(out.dir, "rna_counts.txt.chars.blocks")) %>% 
+    grep(pattern = "^ Genes ", value = TRUE) %>% strsplit(., split = " ")
+  CoReg_gene <- pblapply(seq_along(qubic.genes), function(i) {
+    x <- qubic.genes[[i]]
+    Gene <- x[-(1:3)] %>% strsplit(., split = "_") %>% sapply(., "[", 1) %>% unique
+    data.frame(
+      Gene = Gene,
+      Condition = rep(i, length(Gene))
+    )
+  }) %>% Reduce("rbind", .)
+  CoReg_gene <- CoReg_gene[CoReg_gene$Condition %in% unique(CoCond_cell$Condition), ]
+  message ("Read co-regulated genes (n = ", length(unique(CoReg_gene$Gene)), 
+           ") in ", length(unique(CoReg_gene$Condition)), " biclusters")
+  
+  
+  # message ("Identified ", max(LTMG.obj@BiCluster@CoReg_gene$Condition),
+  #          " IRIS-FGM biclusters from the LTMG matrix.\n",
+  #          "Saved the LTMG object to file: ", out.dir, "LTMG.qsave.")
+  # qs::qsave(LTMG.obj, paste0(out.dir, "LTMG.qsave"))
 
 
-  # Get the list of Seurat objects
-  rna.dis <- subset(x = LTMG.obj@LTMG@LTMG_discrete,
-                    rownames(LTMG.obj@LTMG@LTMG_discrete) %in%
+  # Get the list of Seurat objects 
+  # rna.dis <- subset(x = LTMG.obj@LTMG@LTMG_discrete,
+  #                   rownames(LTMG.obj@LTMG@LTMG_discrete) %in%
+  #                     rownames(Seurat::GetAssayData(obj, assay = "RNA", slot = "data")))
+  
+  
+  rna.dis <- subset(x = LTMG_discrete,
+                    rownames(LTMG_discrete) %in%
                       rownames(Seurat::GetAssayData(obj, assay = "RNA", slot = "data")))
   atac.dis <- binarize(Seurat::GetAssayData(object = obj, slot = 'data',
                                     assay = peak.assay))
   link.ratio <- sapply(apply(links.df, 2, unique), length)
-  obj.list <- subset_object(LTMG.obj = LTMG.obj, object = obj, links.df = links.df,
-                            atac.dis = atac.dis, n.blocks = n.blocks,
+  
+  
+  if (length(unique(CoReg_gene$Condition)) == 0) {
+    stop ("No bicluster was discovered by IRIS-FGM\n", 
+          "Please perform quality control or denoising before analysis")
+  } else if (length(unique(CoReg_gene$Condition)) < 2) {
+    block.list <- list(unique(CoReg_gene$Gene))
+  } else {
+    block.list <- split(CoReg_gene,
+                        f = CoReg_gene$Gene) %>%
+      sapply(., "[[", "cell_name") %>% head(n = n.blocks)
+  }
+  
+  
+  obj.list <- subset_object(CoCond_cell = CoCond_cell, object = obj, links.df = links.df,
+                            atac.dis = atac.dis, n.blocks = n.blocks, 
                             max.peaks = round(nrow(rna.dis) * link.ratio[1] / link.ratio[2]),
                             peak.assay = peak.assay)
-  block.list <- split(LTMG.obj@BiCluster@CoReg_gene,
-                      f = LTMG.obj@BiCluster@CoReg_gene$Condition) %>%
-    sapply(., "[[", "Gene")
+
+  
   flags <- sapply(obj.list, is.not.null)
   obj.list <- obj.list[flags]
   block.list <- block.list[flags]
+  
+  
+  if (length(block.list) < 1) {
+    stop ("No IRIS-FGM bicluster passed quality control\n", 
+          "Please Please perform quality control or denoising before analysis")
+  }
 
 
   # Construct heterogeneous graphs
@@ -280,6 +384,14 @@ run_stream <- function(obj = NULL,
                       min.cells = min.cells, out.dir = out.dir)
   flags <- sapply(G.list, is.not.null) # whether the graph is empty
   G.list <- G.list[flags] # filter the graphs
+  
+  
+  if (length(G.list) < 1) {
+    stop ("No heterogeneous graph was constructed\n", 
+          "Please perform quality control or denoising before analysis")
+  }
+  
+  
   obj.list <- obj.list[flags] # filter the Seurat objects
   block.list <- block.list[flags]
   qs::qsave(obj.list, paste0(out.dir, "Obj_list.qsave"))
@@ -347,7 +459,8 @@ run_stream <- function(obj = NULL,
                        rna.dis = rna.dis, atac.dis = atac.dis, KL = KL, 
                        peak.assay = peak.assay)
   if (length(seeds) < 1) {
-    stop ("No seeds was identified")
+    stop ("No seeds was identified\n", 
+          "Please perform quality control or denoising before analysis")
   }
   message (length(seeds), " seeds are identified for hybrid biclustering,\n",
            "which were saved to file: ", out.dir, "Seeds.qsave.")

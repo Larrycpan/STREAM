@@ -3,19 +3,27 @@
 #' @import dplyr
 #' @keywords internal
 #'
-subset_object <- function(LTMG.obj, object, peak.assay = 'ATAC',
+subset_object <- function(CoCond_cell, object, peak.assay = 'ATAC', 
                           atac.dis, max.peaks = 3000, links.df = NULL,
                           n.blocks = 100) {
   
   atac.dis <- atac.dis[intersect(unique(links.df[links.df$gene %in%
                                                    rownames(object[["RNA"]])]$peak),
                                  rownames(atac.dis)),]
-  block.list <- split(LTMG.obj@BiCluster@CoCond_cell,
-                      f = LTMG.obj@BiCluster@CoCond_cell$Condition) %>%
-    sapply(., "[[", "cell_name") %>% head(n = n.blocks)
+
+  if (length(unique(CoCond_cell$Condition)) == 0) {
+    stop ("No bicluster was discovered by IRIS-FGM\n", 
+          "Please perform quality control or denoising before analysis")
+  } else if (length(unique(CoCond_cell$Condition)) < 2) {
+    block.cells <- list(unique(CoCond_cell$cell_name))
+  } else {
+    block.cells <- split(CoCond_cell,
+                        f = CoCond_cell$cell_name) %>%
+      sapply(., "[[", "cell_name") %>% head(n = n.blocks)
+  }
   
   
-  return( parallel::mclapply(block.list, function(block) {
+  return( parallel::mclapply(block.cells, function(block) {
     n.cutoff <- 0
     r.sum <- Matrix::rowSums(atac.dis[, block]) # rowwise sums
     r.sum <- r.sum[which(r.sum > n.cutoff)] # remove the zero sums
@@ -106,7 +114,7 @@ build_graph <- function(obj.list, obj = NULL, rna.dis, atac.dis,
                             org.gs@seqinfo@seqlengths) # genome sequence lengths
   colnames(genome.info) <- c("seqnames", "seqlengths") # rename the columns
   cicero.links <- run_cicero(cds = cicero.cds, genomic_coords = genome.info,
-                             window = distance ) # build peak-peak linkages using cicero
+                             window = distance ) # build peak-peak linkages using Cicero
   colnames(cicero.links) <- c('node1', 'node2', 'weight')
   cicero.links$node2 <- as.character(cicero.links$node2) # convert factors into characters
   coaccess.links <- data.table::rbindlist(apply(cicero.links, 1, function(r) {

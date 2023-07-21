@@ -281,7 +281,7 @@ link_peaks <- function(object, peak.assay = "ATAC", expression.assay = "RNA",
                         peak.slot = "counts", 
                         expression.slot = "data", method = "pearson", gene.coords = NULL, 
                         distance = 5e+05, min.distance = NULL, min.cells = 10, genes.use = NULL, 
-                        n_sample = 200, pvalue_cutoff = 0.05, score_cutoff = 0.05, 
+                        n_sample = 100, pvalue_cutoff = 0.05, score_cutoff = 0.05, 
                         gene.id = FALSE, verbose = TRUE) {
   
   if (!requireNamespace(package = "qlcMatrix", quietly = TRUE)) {
@@ -396,7 +396,8 @@ link_peaks <- function(object, peak.assay = "ATAC", expression.assay = "RNA",
   } else {
     mylapply <- ifelse(test = verbose, yes = pblapply, no = lapply)
   }
-  res <- mylapply(X = seq_along(along.with = genes.use), mc.cores = max(parallel::detectCores() / 2, 
+  # res <- lapply(X = seq_along(along.with = genes.use), 
+  res <- mylapply(X = seq_along(along.with = genes.use), mc.cores = max(parallel::detectCores() / 2,
                                                                         1),
                   FUN = function(i) {
     peak.use <- as.logical(x = peak_distance_matrix[, genes.use[[i]]])
@@ -432,6 +433,7 @@ link_peaks <- function(object, peak.assay = "ATAC", expression.assay = "RNA",
         rownames(bg.coef) <- colnames(bg.access)
         zscores <- vector(mode = "numeric", length = length(x = peaks.test))
         for (j in seq_along(along.with = peaks.test)) {
+          # message (j)
           coef.use <- bg.coef[(((j - 1) * n_sample) + 
                                  1):(j * n_sample), ]
           z <- (coef.result[j] - mean(x = coef.use))/sd(x = coef.use)
@@ -475,7 +477,7 @@ link_peaks <- function(object, peak.assay = "ATAC", expression.assay = "RNA",
                               x = coef.vec, dims = c(length(x = genes.use), max(peak.key)))
   rownames(x = coef.matrix) <- genes.use
   colnames(x = coef.matrix) <- names(x = peak.key)
-  links <- LinksToGRanges(linkmat = coef.matrix, gene.coords = gene.coords.use)
+  links <- invisible(LinksToGRanges(linkmat = coef.matrix, gene.coords = gene.coords.use) )
   z.matrix <- Matrix::sparseMatrix(i = gene.vec, j = peak.key[names(x = zscore.vec)], 
                            x = zscore.vec, dims = c(length(x = genes.use), max(peak.key)))
   rownames(x = z.matrix) <- genes.use
