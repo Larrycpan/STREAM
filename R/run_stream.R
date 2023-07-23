@@ -43,6 +43,8 @@
 #'
 #' @rdname run_stream
 #' @importFrom dplyr %>%
+#' @importFrom Signac Annotation
+#' @importFrom GenomeInfoDb seqlevelsStyle
 #' @export
 #' 
 #' @return When running on a \code{Seurat} object,
@@ -152,11 +154,26 @@ run_stream <- function(obj = NULL,
   } else if (org == "hg19") {
     require(BSgenome.Hsapiens.UCSC.hg19)
     org.gs <- BSgenome.Hsapiens.UCSC.hg19
-  } else {
+  } else if (org == "hg38") {
     require(BSgenome.Hsapiens.UCSC.hg38)
     org.gs <- BSgenome.Hsapiens.UCSC.hg38
+  } else {
+    stop ("Wrong organism assembly is input\n", 
+          "Please specify the correct organism assembly, e.g., hg38, hg19, mm10, or mm9")
   })
   message ("Loaded full genome sequences for ", org, ".")
+  
+  
+  # Check whether annotations exist
+  if (is.null(Signac::Annotation(object = obj[[peak.assay]]))) {
+    message ("Annotation slot does not exist in the ", peak.assay, " assay")
+    annotations <- Signac::GetGRangesFromEnsDb(org_to_DB(org = org) )
+    GenomeInfoDb::seqlevels(annotations) <- paste0('chr', GenomeInfoDb::seqlevels(annotations))
+    GenomeInfoDb::genome(annotations) <- org
+    GenomeInfoDb::seqlevelsStyle(annotations) <- 'UCSC'
+    Signac::Annotation(object = obj[[peak.assay]]) <- annotations
+    message ("Attach an annotation slot to the ", peak.assay, " assay")
+  }
 
 
   # Filter the genes that have annotations
@@ -242,22 +259,30 @@ run_stream <- function(obj = NULL,
   ##############################################################################
   
   
-  # LTMG.obj <- call_LTMG(obj = obj)
-  # ltmg.df <- as.data.frame(obj@assays$RNA@data) # get the expression matrix saved in a data frame
-  # ltmg.obj <- IRISFGM::ProcessData(IRISFGM::CreateIRISFGMObject(ltmg.df),
-  #                                  normalization = "cpm", IsImputation = F)
-  # LTMG.obj <- IRISFGM::RunLTMG(ltmg.obj, Gene_use = "all")
-  # LTMG_discrete <- LTMG.obj@LTMG@LTMG_discrete # the discretized matrix
-  # qs::qsave(LTMG.obj, paste0(out.dir, "LTMG_obj.qsave"))
-  # message ("Finished LTMG modeling for ", nrow(LTMG.obj@LTMG@LTMG_discrete),
-  #          " genes across ", ncol(LTMG.obj@LTMG@LTMG_discrete), " cells.\n",
-  #          "There are ", length(unique(range(LTMG.obj@LTMG@LTMG_discrete))),
-  #          " transcriptional regulatory states (TRSs) identified.")
+  message ("\nBegan LTMG modeling ===================")
+  LTMG.obj <- call_LTMG(obj = obj)
+  LTMG_discrete <- LTMG.obj@LTMG@LTMG_discrete # the discretized matrix
+  message ("End LTMG modeling ===================")
 
 
   # Please uncomment the following command and make sure to set a correct working directory
   # so that the following command will generate intermediate files.
-  # LTMG.obj <- IRISFGM::CalBinaryMultiSignal(LTMG.obj) # partition each gene into TRSs
+  LTMG.obj <- IRISFGM::CalBinaryMultiSignal(LTMG.obj) # partition each gene into TRSs
+  
+  
+  qs::qsave(LTMG.obj, paste0(out.dir, "LTMG_obj.qsave"))
+  write.table(cbind(o = rownames(LTMG.obj@LTMG@LTMG_BinaryMultisignal), 
+        as.data.frame(LTMG.obj@LTMG@LTMG_BinaryMultisignal) ), 
+        file = paste0(out.dir, "rna_counts.txt.chars"),
+        quote = FALSE, 
+        sep = "\t", 
+        row.names = FALSE)
+  message ("Finished LTMG modeling for ", nrow(LTMG.obj@LTMG@LTMG_discrete),
+           " genes across ", ncol(LTMG.obj@LTMG@LTMG_discrete), " cells.\n",
+           "There are ", length(unique(range(LTMG.obj@LTMG@LTMG_discrete))),
+           " transcriptional regulatory states (TRSs) identified.")
+  
+  
   # LTMG.obj <- IRISFGM::RunBicluster(LTMG.obj, DiscretizationModel = "LTMG", OpenDual = FALSE,
   #                        NumBlockOutput = n.blocks, BlockOverlap = BlockOverlap,
   #                        Extension = Extension,
@@ -272,19 +297,20 @@ run_stream <- function(obj = NULL,
   
   
   # LTMG modeling
-  write.table(cbind(o = rownames(obj@assays$RNA@counts), as.data.frame(obj@assays$RNA@counts)), 
-            paste0(out.dir, "rna_counts.txt"), quote = FALSE, row.names = FALSE, sep = "\t")
-  message ("Wrote the gene expression count matrix to ", out.dir, "rna_counts.txt")
-  
-  message ("\nBegan LTMG modeling ===================")
-  system(paste0(qubic.path, " -i rna_counts.txt -F -R"))
-  message ("\nEnd LTMG modeling ===================")
-
-  LTMG_discrete <- read.table(paste0(out.dir, "rna_counts.txt.em.chars"), header = TRUE)
-  rownames(LTMG_discrete) <- LTMG_discrete$o
-  LTMG_discrete <- LTMG_discrete[, -1]
-  message ("Read the discretized matrix from: ", out.dir, "rna_counts.txt.em.chars (", 
-           nrow(LTMG_discrete), " x ", ncol(LTMG_discrete), ")")
+  # write.table(cbind(o = rownames(obj@assays$RNA@counts), as.data.frame(obj@assays$RNA@counts)), 
+  #           paste0(out.dir, "rna_counts.txt"), quote = FALSE, row.names = FALSE, sep = "\t")
+  # message ("Wrote the gene expression count matrix to ", out.dir, "rna_counts.txt")
+  # 
+  # message ("\nBegan LTMG modeling ===================")
+  # system(paste0(qubic.path, " -i rna_counts.txt -F -R"))
+  # message ("End LTMG modeling ===================\n")
+  # 
+  # LTMG_discrete <- read.table(paste0(out.dir, "rna_counts.txt.em.chars"), 
+  #                             header = TRUE, sep = "\t")
+  # rownames(LTMG_discrete) <- LTMG_discrete$o
+  # LTMG_discrete <- LTMG_discrete[, -1]
+  # message ("Read the discretized matrix from: ", out.dir, "rna_counts.txt.em.chars (", 
+  #          nrow(LTMG_discrete), " x ", ncol(LTMG_discrete), ")")
   
   
   # QUBIC2 biclustering
@@ -299,7 +325,7 @@ run_stream <- function(obj = NULL,
     grep(pattern = "^ Conds ", value = TRUE) %>% strsplit(., split = " ")
   CoCond_cell <- pblapply(seq_along(qubic.cells), function(i) {
     x <- qubic.cells[[i]]
-    cell_name <- x[-(1:3)] %>% strsplit(., split = "_") %>% sapply(., "[", 1) %>% unique
+    cell_name <- x[-(1:3)]
     data.frame(
       cell_name = cell_name,
       Condition = rep(i, length(cell_name))
@@ -352,8 +378,8 @@ run_stream <- function(obj = NULL,
     block.list <- list(unique(CoReg_gene$Gene))
   } else {
     block.list <- split(CoReg_gene,
-                        f = CoReg_gene$Gene) %>%
-      sapply(., "[[", "cell_name") %>% head(n = n.blocks)
+                        f = CoReg_gene$Condition) %>%
+      sapply(., "[[", "Gene") %>% head(n = n.blocks)
   }
   
   
@@ -549,7 +575,8 @@ run_stream <- function(obj = NULL,
     return(submod.obj$eRegs)
   }
 
-
+  
+  message (length(submod.HBCs), " enhancer regulons (eRegulons) were discovered")
   return(submod.HBCs)
 }
 

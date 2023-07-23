@@ -18,7 +18,7 @@ subset_object <- function(CoCond_cell, object, peak.assay = 'ATAC',
     block.cells <- list(unique(CoCond_cell$cell_name))
   } else {
     block.cells <- split(CoCond_cell,
-                        f = CoCond_cell$cell_name) %>%
+                        f = CoCond_cell$Condition) %>%
       sapply(., "[[", "cell_name") %>% head(n = n.blocks)
   }
   
@@ -101,6 +101,7 @@ build_graph <- function(obj.list, obj = NULL, rna.dis, atac.dis,
              "Obtaining ", nrow(x), " enhancers.")
   }
   summ <- Matrix::summary(x)
+  invisible(require(monocle3))
   cicero.data <- data.frame(Origin = rownames(x)[summ$i],
                             Destination = colnames(x)[summ$j],
                             Weight      = summ$x) # transform the sparse matrix into a data frame
@@ -109,7 +110,7 @@ build_graph <- function(obj.list, obj = NULL, rna.dis, atac.dis,
     preprocess_cds(method = "LSI", verbose = FALSE) %>%
     reduce_dimension(reduction_method = 'UMAP', preprocess_method = "LSI")
   umap.coords <- SingleCellExperiment::reducedDims(input.cds)$UMAP # obtain the UMAP coordinates
-  cicero.cds <- make_cicero_cds(input.cds, reduced_coordinates = umap.coords )
+  cicero.cds <- make_cicero_cds(cds = input.cds, reduced_coordinates = umap.coords )
   genome.info <- data.frame(org.gs@seqinfo@seqnames,
                             org.gs@seqinfo@seqlengths) # genome sequence lengths
   colnames(genome.info) <- c("seqnames", "seqlengths") # rename the columns
@@ -711,10 +712,11 @@ expand_cells <- function(HBC = NULL, m = NULL, mm = NULL, quantile.cutoff = 4,
                          P = NULL, Q = NULL, G = NULL, KL = "min.exp") {
 
   gene.cells <- names(which(apply(m[HBC$genes, setdiff(colnames(m),
-                                                       HBC$cells)], 2, sum) >=
+                                                       HBC$cells), 
+                                    drop = FALSE], 2, sum) >=
                 length(HBC$genes)))
-  peak.cells <- names(which(apply(mm[HBC$peaks, gene.cells], 2, sum) >=
-    quantile(apply(mm[HBC$peaks, HBC$cells], 2, sum))[quantile.cutoff]))
+  peak.cells <- names(which(apply(mm[HBC$peaks, gene.cells, drop = FALSE], 2, sum) >=
+    quantile(apply(mm[HBC$peaks, HBC$cells, drop = FALSE], 2, sum))[quantile.cutoff]))
   HBC$cells <- c(HBC$cells, peak.cells)
   HBC$score <- score_HBC(HBC, KL = KL, Q = Q, P = P, m = m, G = G)
   HBC

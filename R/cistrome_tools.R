@@ -67,7 +67,6 @@ CollapseToLongestTranscript <- function(ranges) {
 }
 
 
-
 #' Retain genes or enhancers which are within a nearby range of at least one enhancer or gene,
 #' respectively
 #'
@@ -76,8 +75,8 @@ CollapseToLongestTranscript <- function(ranges) {
 #' @keywords internal
 #'
 filter_nearby_genes <- function(obj, distance = 1e+6, peak.assay = "ATAC") {
-
-  # calculate the nearby genes
+  
+  # Calculate the nearby genes
   gene.coords <- CollapseToLongestTranscript(ranges = Signac::Annotation(object = obj[[peak.assay]]))
   peaks <- Signac::StringToGRanges(rownames(obj[[peak.assay]])) # get peak coordinates
   distance.df <- Matrix::summary(DistanceToTSS(peaks = peaks, genes = gene.coords,
@@ -86,7 +85,7 @@ filter_nearby_genes <- function(obj, distance = 1e+6, peak.assay = "ATAC") {
   gene.names <- gene.coords$gene_name # get gene names
 
 
-  data.table::rbindlist(pbmcapply::pbmclapply(1:nrow(distance.df), function(i) {
+  data.table::rbindlist(pbmcapply::pbmclapply(1:nrow(distance.df), function (i) {
     return(list(peak = peak.names[distance.df[i, 1]], gene = gene.names[distance.df[i, 2]]))
   }, mc.cores = min(parallel::detectCores(), nrow(distance.df))), fill = T) %>%
     dplyr::filter(gene %in% rownames(obj[["RNA"]]))

@@ -503,7 +503,22 @@ make_cicero_cds <- function(cds, reduced_coordinates, k = 50, summary_stats = NU
   reduced_coordinates <- as.data.frame(reduced_coordinates)
   reduced_coordinates <- reduced_coordinates[colnames(cds),
   ]
-  nn_map <- FNN::knn.index(reduced_coordinates, k = (k - 1))
+  
+  
+  # This part does not belong to the original Cicero codes
+  nn_map <- tryCatch({
+    FNN::knn.index(reduced_coordinates, k = (k - 1))
+  }, error = function(e) {
+    return("error")
+  })
+  if (identical(nn_map, "error")) {
+    k <- ceiling(ncol(cds) / 10)
+    nn_map <- FNN::knn.index(reduced_coordinates, k = (k - 1))
+    warning ("There are too few cells (n = ", ncol(cds), ") to run Cicero to build cis-regulatory map\n", 
+             "Re-calculating KNN graph by setting k = ", k, " ...")
+  }
+
+  
   row.names(nn_map) <- row.names(reduced_coordinates)
   nn_map <- cbind(nn_map, seq_len(nrow(nn_map)))
   good_choices <- seq_len(nrow(nn_map))
@@ -576,8 +591,21 @@ make_cicero_cds <- function(cds, reduced_coordinates, k = 50, summary_stats = NU
   colnames(new_exprs) <- new_pdata$agg_cell
   fdf <- monocle3::fData(cds)
   new_pdata$temp <- NULL
-  cicero_cds <- suppressWarnings(monocle3::new_cell_data_set(new_exprs,
-                                                             cell_metadata = new_pdata, gene_metadata = fdf))
+  
+  
+  # This part is different from the original Cicero codes
+  cicero_cds <- tryCatch({
+    suppressWarnings(monocle3::new_cell_data_set(new_exprs, cell_metadata = new_pdata, gene_metadata = fdf))
+  }, error = function(e) {
+    return("error")
+  })
+  if (identical(cicero_cds, "error") ) {
+    cicero_cds <- suppressWarnings(monocle3::new_cell_data_set(methods::as(new_exprs, "sparseMatrix"),
+                                                               cell_metadata = new_pdata, 
+                                                               gene_metadata = fdf))
+  }
+  
+  
   cicero_cds <- monocle3::detect_genes(cicero_cds, min_expr = 0.1)
   cicero_cds <- monocle3::estimate_size_factors(cicero_cds)
   if (any(!c("chr", "bp1", "bp2") %in% names(monocle3::fData(cicero_cds)))) {
