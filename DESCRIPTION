@@ -140,7 +140,6 @@ Collate:
     'utilities.R'
     'visual.R'
 Suggests: 
-    testthat (>= 3.0.0)
 VignetteBuilder: knitr
 Language: en-US
 NeedsCompilation: no
