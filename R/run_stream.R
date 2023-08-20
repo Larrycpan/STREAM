@@ -9,7 +9,7 @@
 #' in a dataset by submodular optimization.
 #' 
 #' @param obj A \code{Seurat} object composed of both scRNA-seq and scATAC-seq assays.
-#' @param qubic.path The path of the binary excutable file of QUBIC2, e.g., "/users/PAS1475/liyang/software/QUBIC2/qubic"
+#' @param qubic.path The path of the binary executable file of QUBIC2, e.g., "/users/PAS1475/liyang/software/QUBIC2/qubic"
 #' @param top.peaks The number of top-ranked peaks to identify the core part of hybrid biclusters (HBCs),
 #' 3000 by default.
 #' @param min.cells The cutoff of minimum number of cells for quality control (QC), 10 by default.
@@ -130,7 +130,7 @@ run_stream <- function(obj = NULL,
 
 
   # Quality control
-  invisible(peaks.use <- rownames(obj[[peak.assay]])[as.vector(as.character(BSgenome::seqnames(obj[[peak.assay]]@ranges)) %in% 
+  quiet(peaks.use <- rownames(obj[[peak.assay]])[as.vector(as.character(BSgenome::seqnames(obj[[peak.assay]]@ranges)) %in% 
                                                                  GenomeInfoDb::standardChromosomes(obj[[peak.assay]]@ranges))])
   obj <- subset(obj,
                 features = c(
@@ -161,7 +161,7 @@ run_stream <- function(obj = NULL,
     stop ("Wrong organism assembly is input\n", 
           "Please specify the correct organism assembly, e.g., hg38, hg19, mm10, or mm9")
   })
-  message ("Loaded full genome sequences for ", org, ".")
+  message ("Loaded full genome sequences for ", org)
   
   
   # Check whether annotations exist
@@ -601,6 +601,7 @@ run_stream <- function(obj = NULL,
 #' @param all.genes the number of genes in the simulated \code{Seurat} object.
 #' @param all.enhs The number of enhancers in the simulated \code{Seurat} object.
 #' @param all.cells The number of cells in the simulated \code{Seurat} object.
+#' @param multi.factor The value to be multiplied by the eRegulon genes
 #'
 #' @return Returns a list composed of an eRegulon list and a \code{Seurat} object.
 #' each item of the simulated eRegulon contains the following attributes:
@@ -622,13 +623,14 @@ run_stream <- function(obj = NULL,
 #' Benchmark and integration of resources for the estimation of human transcription factor activities. 
 #' Genome research, 29(8), 1363-1375.
 #' 
-create_rna_atac <- function(obj = NULL, ntfs = 5, ngenes = 100,
+create_rna_atac <- function(obj = NULL, ntfs = 5, ngenes = 50,
                             ncells = 100, all.genes = 1000, all.enhs = 3000, all.cells = 1000,
-                            org = "hg38", atac.assay = "ATAC", gene.links = 2,
+                            org = "hg38", atac.assay = "ATAC", gene.links = 2, multi.factor = 100,
                             distance = 5e+05, url.link = "https://figshare.com/ndownloader/files/38794185"
                             ) {
-
+  
   # Parameters
+  multi.factor <- 100 # ensure there are enough candidate regulons
   message ("Loading TF binding sites from JASPAR 2022 ...")
   options(timeout = 2000)
   load(url(url.link))
@@ -639,55 +641,64 @@ create_rna_atac <- function(obj = NULL, ntfs = 5, ngenes = 100,
            "The Seurat object contains ", nrow(obj[["RNA"]]),
            " genes, ",
            nrow(obj[[atac.assay]]), " enhancers, and ", ncol(obj), " cells.")
-
-
+  
+  
   # Select TFs
   set.seed(123)
   cand.tfs <- unique(sites$TF)
   cand.tfs <- cand.tfs[!grepl("::", cand.tfs)]
-  tf.lst <- unique(sites$TF)[sample(seq_along(cand.tfs), size = ntfs)]
-
-
+  # tf.lst <- unique(sites$TF)[sample(seq_along(cand.tfs), size = ntfs)]
+  message ("There are ", length(cand.tfs), " candidate TFs curated by JASPAR 2022")
+  
+  
   # Select target genes
+  rna.m <- Seurat::GetAssayData(object = obj, slot = "counts", assay = "RNA")
+  atac.m <- Seurat::GetAssayData(object = obj, slot = "counts", assay = atac.assay)
   if (grepl("^mm", org)) {
     tf.target <- dorothea::dorothea_mm[, c("tf", "target")]
   } else {
     tf.target <- dorothea::dorothea_hs[, c("tf", "target")]
   }
-  message ("Loaded ", length(unique(tf.target$tf)), " TFs collected in DoRothEA database.")
-  tf.target.overlap <- tf.target[tf.target$tf %in% tf.lst,] %>% split(., .$tf)
+  tf.target.filtered <- tf.target[tf.target$target %in% rownames(rna.m),, drop = FALSE]
+  message ("Loaded ", length(unique(tf.target.filtered$tf)), " TFs collected in DoRothEA database.")
+  tf.lst <- unique(tf.target.filtered$tf)[sample(seq_along(unique(tf.target.filtered$tf)), 
+                                                 size = min(ntfs * multi.factor, length(unique(tf.target.filtered$tf))) ) ]
+  tf.target.overlap <- tf.target.filtered[tf.target.filtered$tf %in% tf.lst,] %>% split(., .$tf)
+  #tf.target.overlap <- split(tf.target.filtered, f = tf.target.filtered$tf)
   message ("There are ", length(names(tf.target.overlap)),
-           " common TFs between JASPAR and DoRothEA.")
-  ngene.lst <- stats::rpois(ntfs, ngenes)
+           " common selected TFs between JASPAR and DoRothEA.")
+  ngene.lst <- stats::rpois(ntfs * multi.factor, ngenes * multi.factor)
   gene.lst <- pbmcapply::pbmclapply(seq_along(tf.target.overlap), function(i) {
     x <- tf.target.overlap[[i]]
-    x$target[sample(1:nrow(x), min(ngene.lst[i], nrow(x)))]
+    x$target[sample(1:nrow(x), min(ngene.lst[i], nrow(x)) )]
   }, mc.cores = parallel::detectCores())
   names(gene.lst) <- names(tf.target.overlap)
   message ("Generated regulons composed of ", range(sapply(gene.lst, length))[1],
            "-", range(sapply(gene.lst, length))[2], " genes.")
-
-
+  
+  
   # Select enhancers bound by the selected TFs
   cis.links <- suppressWarnings(link_peaks_to_genes(peak.obj = rownames(obj[[atac.assay]]),
-                                   gene.obj = Reduce("union", gene.lst), distance = distance,
-                                   org = org))
+                                                    gene.obj = Reduce("union", gene.lst), distance = distance,
+                                                    org = org))
   message ("Identified ", length(unique(Signac::GRangesToString(cis.links))), " enhancers within ",
            distance, " from the selected genes.")
   enhs <- Signac::GRangesToString(cis.links)
   tf.sites <- data.frame(tf = sites$TF[sites$TF %in% tf.lst],
                          peak = Signac::GRangesToString(sites$peak[sites$TF %in% tf.lst])) %>%
     split(., .$tf) %>% sapply(., "[[", 2)
-
-
+  message ("Identified the binding enhancers of ", length(tf.sites), " TFs, ranging from ", 
+           range(sapply(tf.sites, length))[1], " to ", range(sapply(tf.sites, length))[2], " bound enhancers")
+  
+  
   # Convert TF binding sites to enhancers
   tf.enhs <- pbmcapply::pbmclapply(tf.sites, function(x) {
     hit.m <- overlap_peak_lst(lst1 = Signac::StringToGRanges(x), lst2 = cis.links)
     summ <- Matrix::summary(hit.m)
     enhs[unique(summ$j)]
   }, mc.cores = parallel::detectCores())
-
-
+  
+  
   # Ensure each gene was linked to at least one enhancer
   en.regs <- pbmcapply::pbmclapply(names(tf.enhs), function(x) {
     Reduce("c", lapply(gene.lst[[x]], function(y) {
@@ -699,60 +710,67 @@ create_rna_atac <- function(obj = NULL, ntfs = 5, ngenes = 100,
   message ("Generated ", length(en.regs), " eRegulons composed of ",
            range(sapply(en.regs, length))[1], "-", range(sapply(en.regs, length))[2],
            " enhancer-gene relations.")
-
-
+  
+  
+  # Retain the top-ranked eRegulons according to the number of enhancer-gene relations
+  en.regs <- en.regs[order(sapply(en.regs, length), decreasing = TRUE)] %>% head(n = ntfs)
+  message ("Retained ", length(en.regs), " eRegulons composed of ",
+           range(sapply(en.regs, length))[1], "-", range(sapply(en.regs, length))[2],
+           " enhancer-gene relations.")
+  
+  
   # Build hybrid bicluster (HBCs) based on eRegulons
-  rna.m <- Seurat::GetAssayData(object = obj, slot = "counts", assay = "RNA")
-  atac.m <- Seurat::GetAssayData(object = obj, slot = "counts", assay = atac.assay)
   hbc.lst <- c()
   ncell.lst <- stats::rpois(length(en.regs), ncells)
-
-
+  message ("Began building hybrid biclusters (HBCs) based on simulated eRegulons ...")
+  
+  
   # Initializes the progress bar
   pb <- utils::txtProgressBar(min = 0,      # Minimum value of the progress bar
-                       max = length(en.regs), # Maximum value of the progress bar
-                       style = 3,    # Progress bar style (also available style = 1 and style = 2)
-                       width = 50,   # Progress bar width. Defaults to getOption("width")
-                       char = "=")   # Character used to create the bar
-
-
+                              max = length(en.regs), # Maximum value of the progress bar
+                              style = 3,    # Progress bar style (also available style = 1 and style = 2)
+                              width = 50,   # Progress bar width. Defaults to getOption("width")
+                              char = "=")   # Character used to create the bar
+  
+  
   for (i in seq_along(en.regs)) {
     Sys.sleep(0.1) # Remove this line and add your code
-
-
+    
+    
     x <- list(
       TF = names(en.regs)[i],
       genes = unique(en.regs[[i]]$gene),
-      enhancers = unique(Signac::GRangesToString(en.regs[[i]]))
+      enhancers = unique(Signac::GRangesToString(en.regs[[i]])), 
+      links = en.regs[[i]]
     )
-
-
+    
+    
     xcells <- sample(1:ncol(obj), ncell.lst[[i]], replace = FALSE)
-    rna.m[x$genes, xcells] <- 1 + Reduce("rbind", parallel::mclapply(apply(rna.m[x$genes, xcells], 1, max),
-                                                           function(x) rep(x, length(xcells)),
-                                                           mc.cores = parallel::detectCores()))
-    atac.m[x$enhancers, xcells] <- 1 + Reduce("rbind", parallel::mclapply(apply(atac.m[x$enhancers,
+    rna.m[x$genes, xcells] <- multi.factor * Reduce("rbind", parallel::mclapply(apply(rna.m[x$genes, xcells], 1, max),
+                                                                     function(x) rep(x, length(xcells)),
+                                                                     mc.cores = parallel::detectCores()))
+    atac.m[x$enhancers, xcells] <- multi.factor * Reduce("rbind", parallel::mclapply(apply(atac.m[x$enhancers,
                                                                                        xcells], 1, max),
-                                                                function(x) rep(x, length(xcells)),
-                                                                mc.cores = parallel::detectCores()))
+                                                                          function(x) rep(x, length(xcells)),
+                                                                          mc.cores = parallel::detectCores()))
     x$cells <- colnames(obj)[xcells]
     hbc.lst[[i]] <- x
-
-
+    
+    
     utils::setTxtProgressBar(pb, i)
   }
-
-
+  
+  
   # Add genes, enhancers, and cells not associated with eRegulons
   hbc.rna <- rna.m[Reduce("union", sapply(hbc.lst, "[[", "genes")),
                    Reduce("union", sapply(hbc.lst, "[[", "cells"))]
   hbc.atac <- atac.m[Reduce("union", sapply(hbc.lst, "[[", "enhancers")),
-                   Reduce("union", sapply(hbc.lst, "[[", "cells"))]
+                     Reduce("union", sapply(hbc.lst, "[[", "cells"))]
   message ("Simulated hybrid biclusters (HBCs) cover ", nrow(hbc.rna),
            " genes, ", nrow(hbc.atac), " enhancers, and ", ncol(hbc.rna),
            " cells.")
-
-
+  
+  
   # Add background genes, enhancers, and cells
   choice.genes <- setdiff(rownames(rna.m), rownames(hbc.rna))
   choice.genes <- choice.genes[!grepl("^A", choice.genes) & !grepl("\\.", choice.genes)]
@@ -764,25 +782,25 @@ create_rna_atac <- function(obj = NULL, ntfs = 5, ngenes = 100,
                      all.cells - ncol(hbc.rna))
   message ("We have ", length(bg.genes), " genes, ", length(bg.enhs), " enhancers, and ",
            length(bg.cells), " cells as background.")
-
-
+  
+  
   # Generate the simulated matrices
-  simul.rna <- rna.m[Reduce("union", list(rownames(hbc.rna), bg.genes, tf.lst)), 
+  simul.rna <- rna.m[Reduce("union", list(rownames(hbc.rna), bg.genes)), 
                      c(colnames(hbc.rna), bg.cells)]
   simul.atac <- atac.m[c(rownames(hbc.atac), bg.enhs), c(colnames(hbc.atac), bg.cells)]
   rand.rna <- simul.rna[sample(nrow(simul.rna)), sample(ncol(simul.rna))]
   rand.atac <- simul.atac[sample(nrow(simul.atac)), sample(ncol(simul.atac))]
   message ("Generated simulated scRNA-seq and scATAC-seq matrices of sizes: ",
            nrow(rand.rna), " x ", ncol(rand.rna), " and ",
-           nrow(rand.atac), " x ", ncol(rand.atac), ".")
-
-
+           nrow(rand.atac), " x ", ncol(rand.atac), ", respectively.")
+  
+  
   # Create the Seurat object
   simul.obj <- rna_atac_matrices_to_Seurat(rna_counts = rand.rna,
                                            atac_counts = rand.atac,
                                            org = org)
-
-
+  
+  
   message ("The simulated scRNA-seq and scATAC-seq data contains:\n",
            "1. Hybrid biclusters (HBCs) in nested list,\n",
            "2. Seurat object containing the scRNA-seq and scATAC-seq data.")
@@ -986,7 +1004,7 @@ get_cts_en_GRNs <- function(obj = NULL, celltype = "seurat_clusters",
 #' Enhancer-driven gene regulatory networks inference from single-cell RNA-seq and ATAC-seq data. 
 #' bioRxiv, pp.2022-12.
 #' 
-get_cts_en_regs <- function(obj = NULL, peak.assay = "ATAC", de.genes = NULL,
+get_cts_en_regs <- function(obj = NULL, peak.assay = "ATAC", de.genes = NULL, celltype = "celltype",
                             cts.en.grns = NULL, accessibility = FALSE, out.dir = "./",
                             min.pct = 0.25, logfc.threshold = 0.25, padj.cutoff = 0.05) {
 
@@ -1001,7 +1019,7 @@ get_cts_en_regs <- function(obj = NULL, peak.assay = "ATAC", de.genes = NULL,
              "Predicting differentially expressed genes (DEGs) ...")
     Seurat::DefaultAssay(obj) <- "RNA"
     Idents(obj) <- stats::setNames(obj@meta.data[, celltype], colnames(obj))
-    future::plan("multiprocess", workers = 4)
+    future::plan("multicore", workers = 4)
     de.genes <- Seurat::FindAllMarkers(obj, only.pos = TRUE,
                                        min.pct = min.pct, logfc.threshold = logfc.threshold)
   }
@@ -1012,7 +1030,7 @@ get_cts_en_regs <- function(obj = NULL, peak.assay = "ATAC", de.genes = NULL,
              "Predicting differentially accessible regions (DARs) ...")
     Seurat::DefaultAssay(obj) <- peak.assay
     Idents(obj) <- stats::setNames(obj@meta.data[, celltype], colnames(obj))
-    future::plan("multiprocess", workers = 4)
+    future::plan("multicore", workers = 4)
     da.peaks <- Seurat::FindAllMarkers(obj, only.pos = TRUE,
                                     min.pct = min.pct, logfc.threshold = logfc.threshold)
     da.peaks <- da.peaks[da.peaks$p_val_adj < padj.cutoff,]
@@ -1071,8 +1089,8 @@ get_cts_en_regs <- function(obj = NULL, peak.assay = "ATAC", de.genes = NULL,
 #' @export
 #' @rdname intersect_enhancer_gene_relations
 #' 
-#' @param x The first \code{GRanges} object saving enhancer-gene relations.
-#' @param y The second \code{GRanges} object saving enhancer-gene relations.
+#' @param x The first \code{GRanges} object saving enhancer-gene relations with gene symbols saved in "gene" meta column
+#' @param y The second \code{GRanges} object saving enhancer-gene relations with gene symbols saved in "gene" meta column
 #' @return Return a \code{data.frame} indicating overlapped \code{GRanges} objects, 
 #' containing the following columns:
 #' \itemize{
@@ -1101,15 +1119,15 @@ intersect_enhancer_gene_relations <- function(x, y) {
   y.overlap <- y[y$gene %in% overlap.genes]
   query.subject <- GenomicRanges::findOverlaps(query = x.overlap,
                                                    subject = y.overlap)
-  x.peaks <- Signac::GRangesToString(x)
-  x.genes <- x$gene
-  y.peaks <- Signac::GRangesToString(y)
+  x.peaks <- Signac::GRangesToString(x.overlap)
+  x.genes <- x.overlap$gene
+  y.peaks <- Signac::GRangesToString(y.overlap)
   overlap.df <- data.table::rbindlist(lapply(seq_along(query.subject), function(i) {
     list(x.peak = x.peaks[queryHits(query.subject)[i]], 
          y.peak = y.peaks[subjectHits(query.subject)[i]], 
          gene = x.genes[queryHits(query.subject)[i]])
   }))
-  return(overlap.df)
+  return(overlap.df[!duplicated(overlap.df)])
 }
 
 
@@ -1283,7 +1301,7 @@ intersect_peaks_in_batch <- function(x.ll, y.ll, n.times = 100) {
 #' and KEGG pathways
 #' 
 #' @description This function aims to calculate the enrichment of genes in each eRegulon against 
-#' gene ontology (GO) terms or KEGG patthways. Finally, this function returns a list of \code{data.frame} 
+#' gene ontology (GO) terms or KEGG pathways. Finally, this function returns a list of \code{data.frame} 
 #' objects, each of which represents one functional genomics databases, e.g., Biological Process, 
 #' Molecular Function, Cellular Component, and KEGG pathways (human or mouse).
 #' 
@@ -1326,8 +1344,8 @@ enrich_genes <- function(regs = NULL, dbs = c("GO", "KEGG"),
   # Run enrichment analyses
   message ("Running enrichment analyses for ", length(genes.ll), " gene lists ...")
   quiet(require(enrichR))
-  enriched <- pbmcapply::pbmclapply(genes.ll, 
-                                    mc.cores = 4, 
+  enriched <- pbapply::pblapply(genes.ll, 
+                                    #mc.cores = 4, 
                                     function(x) {
                                       enrichr(genes = x, databases = databases)
                                     })

@@ -1,34 +1,91 @@
-# STREAM
-We present a new algorithm, STREAM, for enhancer-driven gene regulatory network (eGRN) inference from transcriptome and chromatin accessibility profiled from the same single cell populations. The algorithm substantially improves the prediction accuracy of relations among transcription factors (TFs), enhancers, and genes, by achieving global optimization based on two key new ideas: (i) we developed the Steiner forest problem (SFP  ) model based on a heterogeneous graph to identify the set of highly confident enhancer-gene relations which underlie a context-specific functional gene module (FGM); and (ii) we designed a hybrid biclustering pipeline integrated with submodular optimization for inferring eGRNs by identifying the optimal subset from a set of hybrid biclusters (HBCs), each of which represents co-regulated genes by the same TF, and co-accessible enhancers bound by the same TF, occurring over a subset of cells. 
+### STREAM: enhancer-driven gene regulatory networks inference from single-cell RNA-seq and ATAC-seq data
 
-# Workflow of STREAM
-STREAM combines the Steiner forest problem (SFP) model and submodular optimization, respectively, to discover the enhancer-gene relations and TF-enhancer-gene relations in a global optimization manner.
+![](https://github.com/YangLi-Bio/yangli-bio.github.io/raw/main/images/overview.jpg)
 
-![Figure_1_workflow_12122022](https://user-images.githubusercontent.com/35290254/207700357-5bc15019-4733-48b1-ad3f-7613769b8285.jpg)
+![](https://github.com/YangLi-Bio/yangli-bio.github.io/raw/main/images/details.jpg)
 
-# Prerequisites
-- bsgenome.mmusculus.ucsc.mm9
-- bsgenome.mmusculus.ucsc.mm10
-- bsgenome.hsapiens.ucsc.hg19
-- bsgenome.hsapiens.ucsc.hg38
-- cicero
-- ensdb.hsapiens.v75
-- ensdb.hsapiens.v86
-- ensdb.mmusculus.v75
-- ensdb.mmusculus.v79
-- GenomicRanges
-- glasso
-- gUtils
-- rTRM
-- Seurat
-- Signac
-- qlcMatrix
-- qualV
+Before installing STREAM, please ensure you have already installed QUBIC2 in your system by following [this tutorial] (https://github.com/OSU-BMBL/QUBIC2).
 
-# Installation
-The latest developmental version of STREAM can be downloaded from GitHub and installed from source by `devtools::install_github("YangLi-Bio/stream2")`.
+You can install STREAM via below commands:
+```R
+# First, check and install the dependency packages using cran
+cran_packages <- c("data.table", "dplyr", "ggplot2", "igraph", "Matrix", 
+                   "pbapply", "qgraph", "RColorBrewer", "RCurl", "Ryacas",
+                   "easypackages", "enrichR", "pbmcapply", "qualV",
+                   "scales", "stats", "utils"
+                   )
 
-# License
-Scissor is licensed under the GNU General Public License v3.0.
+to_install_cran <- cran_packages[!sapply(cran_packages, requireNamespace, quietly = TRUE)]
+if (length(to_install_cran) > 0) {
+    install.packages(to_install_cran)
+}
 
-Improvements and new features of STREAM will be updated on a regular basis. Please post on the GitHub discussion page with any questions.
+
+# Second, check and install BiocManager has been installed
+if (!requireNamespace("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+
+
+# Third, check and install the dependency packages by BiocManager
+bioc_packages <- c("AnnotationDbi", "BSgenome", "BSgenome.Hsapiens.UCSC.hg19", "BSgenome.Hsapiens.UCSC.hg38", 
+                   "BSgenome.Mmusculus.UCSC.mm10", "EnsDb.Mmusculus.v79", "EnsDb.Hsapiens.v75", 
+                   "EnsDb.Hsapiens.v86", "biomaRt", "ensembldb", "GenomeInfoDb", "GenomicAlignments", 
+                   "GenomicRanges", "JASPAR2022", "motifmatchr", "Repitools", "regioneR", 
+                   "rTRM", "SingleCellExperiment", "STRINGdb", "SummarizedExperiment", 
+                   "IRISFGM", "simpIntLists", "TFBSTools", "dorothea"
+                   )
+
+to_install_bioc <- bioc_packages[!sapply(bioc_packages, requireNamespace, quietly = TRUE)]
+if (length(to_install_bioc) > 0) {
+    BiocManager::install(to_install_bioc)
+}
+
+
+# Fourth, check and install devtools
+if (!requireNamespace("devtools", quietly = TRUE))
+    install.packages("devtools")
+
+
+# Fifth, check and install the dependency packages by devtools
+github_packages <- c( 
+                     "mskilab-org/gUtils",  
+                     "cole-trapnell-lab/monocle3", 
+                     "satijalab/Seurat", 
+                     "satijalab/Signac", 
+                     )
+
+# Extracting package names from GitHub paths
+package_names_github <- sapply(strsplit(github_packages, "/"), `[`, 2)
+
+to_install_github <- github_packages[!sapply(package_names_github, requireNamespace, quietly = TRUE)]
+if (length(to_install_github) > 0) {
+    devtools::install_github(to_install_github)
+}
+
+
+# Sixth, install STREAM
+devtools::install_github("YangLi-Bio/stream2")
+```
+
+We provided the following tutorials to show how to use STREAM to build enhancer regulons (eRegulons) and enhancer-driven 
+gene regulatory networks (eGRNs) by using single-cell multiomics/multimodal data:
+
+* [Simulated data analyses](https://yangli-bio.github.io/stream2/articles/simul-analyses.html)
+
+* [Biological data analyses](https://yangli-bio.github.io/stream2/articles/bio-analyses.html)
+
+
+Please consider citing our paper if you used STREAM:
+```
+@article{li2023stream,
+  title={Enhancer-driven gene regulatory networks inference from single-cell RNA-seq and ATAC-seq data},
+  author={Li, Yang and Ma, Anjun and Wang, Yizhong and Guo, Qi and Wang, Cankun and Chen, Shuo and Fu, Hongjun and Liu, Bingqiang and Ma, Qin},
+  journal={bioRxiv},
+  volume={0},
+  number={0},
+  pages={0},
+  year={2023},
+  publisher={Cold Spring Harbor Laborator}
+}
+```
+

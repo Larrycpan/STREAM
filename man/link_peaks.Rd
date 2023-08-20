@@ -16,7 +16,7 @@ link_peaks(
   min.distance = NULL,
   min.cells = 10,
   genes.use = NULL,
-  n_sample = 200,
+  n_sample = 100,
   pvalue_cutoff = 0.05,
   score_cutoff = 0.05,
   gene.id = FALSE,

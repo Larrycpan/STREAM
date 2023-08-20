@@ -8,7 +8,7 @@ several enhancer regulons (eRegulons) are contained.}
 create_rna_atac(
   obj = NULL,
   ntfs = 5,
-  ngenes = 100,
+  ngenes = 50,
   ncells = 100,
   all.genes = 1000,
   all.enhs = 3000,
@@ -16,6 +16,7 @@ create_rna_atac(
   org = "hg38",
   atac.assay = "ATAC",
   gene.links = 2,
+  multi.factor = 100,
   distance = 5e+05,
   url.link = "https://figshare.com/ndownloader/files/38794185"
 )
@@ -40,6 +41,8 @@ create_rna_atac(
 \item{atac.assay}{The scATAC-seq assay.}
 
 \item{gene.links}{The average number of enhancers linked to each gene in an eRegulon.}
+
+\item{multi.factor}{The value to be multiplied by the eRegulon genes}
 
 \item{distance}{The maximum distance between a gene and its linked enhancers.}
 }

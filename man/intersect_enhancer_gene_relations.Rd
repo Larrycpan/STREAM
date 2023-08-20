@@ -8,9 +8,9 @@ two \code{GRanges} objects indicating enhancer-gene relations.}
 intersect_enhancer_gene_relations(x, y)
 }
 \arguments{
-\item{x}{The first \code{GRanges} object saving enhancer-gene relations.}
+\item{x}{The first \code{GRanges} object saving enhancer-gene relations with gene symbols saved in "gene" meta column}
 
-\item{y}{The second \code{GRanges} object saving enhancer-gene relations.}
+\item{y}{The second \code{GRanges} object saving enhancer-gene relations with gene symbols saved in "gene" meta column}
 }
 \value{
 Return a \code{data.frame} indicating overlapped \code{GRanges} objects,

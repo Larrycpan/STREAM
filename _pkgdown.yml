@@ -1,0 +1,37 @@
+url: https://yangli-bio.github.io/stream2/
+template:
+  params:
+    bootstrap: 5
+    bootswatch: cosmo
+
+navbar:
+    title: STREAM
+    left:
+      - text: "Install"
+        href: "articles/install.html"
+      - text: "News"
+        href: "news/index.html"
+      - text: "Vignettes"
+        menu:
+          - text: "Simulated data analyses"
+            href: "articles/simul-analyses.html"
+          - text: "Biological data analyses"
+            href: "articles/bio-analyses.html"
+      - text: "Reference"
+        href: "reference/index.html"
+    right:
+      - icon: fa-github
+        href: "https://github.com/YangLi-Bio/stream2"
+
+home:
+  links:
+   - text: Browse source code
+     href: https://github.com/YangLi-Bio/stream2
+   - text: Report a bug
+     href: https://github.com/YangLi-Bio/stream2/issues
+  license:
+    - text: full license
+      href: "docs/LICENSE.html"
+    - text: MIT
+
+

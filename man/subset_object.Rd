@@ -5,7 +5,7 @@
 \title{Subset a \code{Seurat} object based on \code{IRIS-FGM} blocks}
 \usage{
 subset_object(
-  LTMG.obj,
+  CoCond_cell,
   object,
   peak.assay = "ATAC",
   atac.dis,

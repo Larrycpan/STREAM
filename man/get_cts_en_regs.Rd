@@ -8,6 +8,7 @@ get_cts_en_regs(
   obj = NULL,
   peak.assay = "ATAC",
   de.genes = NULL,
+  celltype = "celltype",
   cts.en.grns = NULL,
   accessibility = FALSE,
   out.dir = "./",
@@ -23,6 +24,8 @@ get_cts_en_regs(
 
 \item{de.genes}{A list of differentially expressed genes (DEGs).}
 
+\item{celltype}{The metadata column indicating the cell types or clusters, "seurat_clusters" by default.}
+
 \item{cts.en.grns}{Cell-type-specific eGRNs saved in \code{GRanges} object, the name of each of which
 is cell type, and the \code{GRanges} object contains metadata columns "gene" and "TF".}
 
@@ -31,8 +34,6 @@ is cell type, and the \code{GRanges} object contains metadata columns "gene" and
 \item{out.dir}{The directory to save the intermediate results or final results, "./" by default.}
 
 \item{padj.cutoff}{The cutoff of adjusted p-values of differential expression, 0.05 by default.}
-
-\item{celltype}{The metadata column indicating the cell types or clusters, "seurat_clusters" by default.}
 }
 \value{
 Returns a list of cell-type-specific eRegulons,  each of which contains the following attributes:

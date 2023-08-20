@@ -1,0 +1,107 @@
+---
+title: "From Simulation to Insight: Inferring eRegulons and eGRNs using STREAM"
+output: html_document
+date: 'Compiled: `r format(Sys.Date(), "%B %d, %Y")`'
+---
+
+```{r setup, include=FALSE}
+
+library(knitr)
+knitr::opts_chunk$set(echo = TRUE)
+work.dir <- "/fs/scratch/PCON0022/liyang/STREAM-revision/tutorial-simul/"
+opts_knit$set(root.dir = work.dir)
+
+```
+
+In this tutorial, we will generate a simulated dataset that jointly profiles scRNA-seq and scATAC-seq, 
+drawing upon a [Seurat object] (https://satijalab.org/seurat/articles/weighted_nearest_neighbor_analysis#wnn-analysis-of-10x-multiome-rna-atac) 
+composed of both scRNA-seq and scATAC-seq assays, [DoRothEA] (https://saezlab.github.io/dorothea/) — a gene regulatory network (GRN) 
+enriched with signed transcription factor (TF), and [JASPAR] (https://jaspar.genereg.net/) — a collection of curated, 
+non-redundant TF binding profiles to target gene interactions. Using this simulated dataset, 
+we will subsequently infer enhancer regulons (eRegulons) and derive enhancer-driven GRNs (eGRNs).
+
+Initially, we selected a subset of TFs at random from the JASPAR 2022 database, along with their 
+curated binding sites. Utilizing these TF binding sites, we identified peaks associated with these TFs. From the regulon 
+genes in DoRothEA, we randomly chose certain genes as target genes for these TFs. For each TF, we associated every target 
+gene with a set of TF binding peaks that are located within a predetermined distance from the gene's transcription start 
+site (TSS). We consider these eRegulons peaks as enhancers.
+
+Upon determining the TFs, genes, and enhancers for the eRegulon, we randomly sampled cell subsets where the eRegulons are active, 
+denoted as eRegulon-active cells. For every eRegulon gene, its expression value in eRegulon-active cells was set to its highest 
+expression value across all cells, multiplied by a factor, e.g., one hundred. In a similar fashion, we increased the chromatin accessibility value for 
+each enhancer within eRegulon-active cells.
+
+Subsequently, we selected a distinct set of genes, peaks, and cells – ones that were not considered as eRegulon genes, peaks, or 
+eRegulon-active cells – to serve as background genes, peaks, and cells. In the end, we crafted scRNA-seq and scATAC-seq matrices 
+by tailoring the original matrices. These new matrices incorporate both eRegulon and background genes/peaks as rows, and a combination 
+of eRegulon-active and background cells as columns.
+
+Execute the commands below to simulate a dataset. The scRNA-seq matrix has dimensions 1000 x 1000, while the scATAC-seq matrix is 
+sized at 3000 x 1000. The dataset encompasses five eRegulons. Each eRegulon contains around 100 target genes, and each gene is modulated 
+by a transcription factor via roughly two enhancers.
+
+Run the following commands to load the STREAM library:
+
+```{r}
+
+dyn.load(x = "/users/PAS1475/liyang/libs/hdf5_1.10.6/lib/libhdf5_hl.so.100")
+library(easypackages)
+libs <- c(
+  "qs", 
+  "hdf5r",
+  "Seurat",
+  "Signac", 
+  "pbmcapply", 
+  "pbapply", 
+  "parallel",
+  "EnsDb.Mmusculus.v79", 
+  "EnsDb.Hsapiens.v86",
+  "dplyr", 
+  "ggplot2", 
+  "ggpubr", 
+  "igraph", 
+  "Matrix"
+)
+libraries(libs)
+
+library(stream2)
+# source.dir <- "/fs/ess/PCON0022/liyang/STREAM/Codes/stream_v2/R/"
+# code.list <- list.files(source.dir, pattern = ".R")
+# lapply(code.list, function(x) {
+#   message (x)
+#   source(paste0(source.dir, x))
+# })
+
+```
+
+
+## Data simulation
+
+Load a Seurat object that comprises jointly profiled scRNA-seq and scATAC-seq assays derived from human PBMCs and produce simulated data. 
+Based on this object, construct a simulated Seurat object encompassing 1,000 genes, 3,000 peaks, and 1,000 cells. 
+This object features five eRegulons, with each eRegulon linked to roughly five target genes and approximately two enhancers. 
+These eRegulons are active in 100 cells.
+
+```{r}
+
+pbmc <- qs::qread(paste0(work.dir, "tutorial_pbmc.qsave"))
+pbmc
+simul <- create_rna_atac(obj = pbmc, ntfs = 5, ngenes = 100,
+                         ncells = 100, all.genes = 1000, all.enhs = 3000, all.cells = 1000,
+                         org = "hg38", atac.assay = "peaks", gene.links = 2
+                         )
+simul$Seurat
+head(simul$HBCs[[1]]$genes)
+head(simul$HBCs[[1]]$enhancers)
+head(simul$HBCs[[1]]$links)
+sapply(simul$HBCs, "[[", "TF")
+
+```
+
+
+```{r}
+
+# Check session information
+sessionInfo()
+
+```

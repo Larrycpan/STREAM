@@ -15,6 +15,7 @@ plot_eGRN(
   n.TFs = 15,
   layout = "fr",
   max.links = 5000,
+  ifSaveRda = FALSE,
   TFs = NULL
 )
 }
@@ -38,6 +39,8 @@ ones encoding the TFs are expressed, while the enhancers are accessible, 50 by d
 \item{n.TFs}{The maximum number of top-ranked TFs to generate eGRN plot, 10 by default}
 
 \item{layout}{The layout for plotting networks, "fr" by default}
+
+\item{ifSaveRda}{Whether save the \code{igraph} objects in a qsdave file}
 
 \item{TFs}{The list of TFs for plotting}
 }

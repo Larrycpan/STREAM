@@ -1,0 +1,200 @@
+---
+title: "From Simulation to Insight: Inferring eRegulons and eGRNs using STREAM"
+output: html_document
+date: 'Compiled: `r format(Sys.Date(), "%B %d, %Y")`'
+---
+
+```{r setup, include = FALSE}
+
+library(knitr)
+knitr::opts_chunk$set(echo = TRUE)
+work.dir <- "/fs/scratch/PCON0022/liyang/STREAM-revision/tutorial-pbmc/"
+opts_knit$set(root.dir = work.dir)
+
+```
+
+
+In this tutorial, we will guide you through the process of inferring enhancer regulons, known as eRegulons, and enhancer-driven 
+gene regulatory networks or eGRNs, utilizing the STREAM tool. Our demonstration leverages a select subset of data from the 
+publicly accessible 10x Genomics Multiome dataset, specifically focusing on human Peripheral Blood Mononuclear Cells (PBMCs).
+For those interested in the comprehensive dataset, the raw data captured by the 10X Genomics Multiome ATAC+GEX can be downloaded directly from [10x Genomics] 
+(https://www.10xgenomics.com/resources/datasets/pbmc-from-a-healthy-donor-granulocytes-removed-through-cell-sorting-10-k-1-standard-1-0-0). 
+As for our tutorial, the subsetted data we employ, stored in a Seurat object format, is available for download on [Figshare]
+(https://figshare.com/ndownloader/files/42039747).
+
+Initially, we ran STREAM on the PBMC data to infer eRegulons, each of which includes its regulating TF, its included genes and 
+enhancers (and their relations), as well as the eRegulon-active cells. We evaluated these eRegulons from three perspectives, i.e., 
+pathway enrichment of eRegulon genes, overlap of eRegulon enhancers against chromatin regions curated in databases (e.g., histone mark ChIP-seq peaks), 
+and intersection of enhancer-gene relations against relations curated in databases (e.g., EnhancerAtlas 2.0 and scEnhancer). 
+Then, we performed hyper-geometric test for eRegulon-active cells against each cell type. 
+If the eRegulon-active cells are significantly enriched in a cell type (e.g., CD4 TCM), we denoted the corresponding eRegulon as 
+cell-type-active eRegulon (CD4 TCM-active eRegulon). For each cell type, we merged all cell-type-active eRegulons, leading to 
+an eGRN. Finally, by splitting the eGRN into sub-networks according to the regulating TFs, we obtained cell-type-specific eRegulons. 
+
+```{r}
+
+dyn.load(x = "/users/PAS1475/liyang/libs/hdf5_1.10.6/lib/libhdf5_hl.so.100")
+library(easypackages)
+libs <- c(
+  "qs", 
+  "hdf5r",
+  "Seurat",
+  "Signac", 
+  "pbmcapply", 
+  "pbapply", 
+  "parallel",
+  "EnsDb.Mmusculus.v79", 
+  "EnsDb.Hsapiens.v86",
+  "dplyr", 
+  "ggplot2", 
+  "ggpubr", 
+  "igraph", 
+  "Matrix"
+)
+libraries(libs)
+
+library(stream2)
+# source.dir <- "/fs/ess/PCON0022/liyang/STREAM/Codes/stream_v2/R/"
+# code.list <- list.files(source.dir, pattern = ".R")
+# lapply(code.list, function(x) {
+#   message (x)
+#   source(paste0(source.dir, x))
+# })
+
+```
+
+
+## Data loading
+
+Load a Seurat object containing jointly profiled scRNA-seq and scATAC-seq assays from human PBMCs.
+
+```{r}
+
+pbmc <- qs::qread(paste0(work.dir, "tutorial_pbmc.qsave"))
+pbmc
+
+```
+
+## eRegulon inference
+
+Run STREAM on the Seurat object with default parameters.
+
+```{r}
+
+# This process can be resource-intensive. We advise against executing it on a personal computer.
+en.regs <- run_stream(obj = pbmc,
+                      qubic.path = "/users/PAS1475/liyang/software/QUBIC2/qubic",
+                      peak.assay = "peaks",
+                      var.genes = 3000,
+                      top.peaks = 3000,
+                      min.cells = 10,
+                      org = "hg38",
+                      c.cutoff = 1.0,
+                      distance = 5e+05,
+                      BlockOverlap = 0.50,
+                      Extension = 1.0
+                      )
+qs::qsave(en.regs, paste0(work.dir, "eRegulons.qsave"))
+names(en.regs[[1]])
+head(en.regs[[1]]$genes)
+head(en.regs[[1]]$peaks)
+head(en.regs[[1]]$links)
+
+```
+
+
+## eGRN construction
+
+Construct eGRN in each cell type.
+
+```{r}
+
+en.grns <- get_cts_en_GRNs(obj = pbmc, celltype = "predicted.id",
+                           en.regs = en.regs, peak.assay = "peaks",
+                           rna.dims = 50, atac.dims = 50,
+                           padj.cutoff = 0.05,
+                           out.dir = "./")
+qs::qsave(en.grns, paste0(work.dir, "eGRNs.qsave"))
+names(en.grns[[1]])
+head(en.grns[[1]]$links)
+
+```
+
+
+## Cell-type-specific eRegulon prediction
+
+Construct cell-type-specific eRegulons.
+
+```{r}
+
+cts.en.regs <- get_cts_en_regs(obj = pbmc, peak.assay = "peaks", de.genes = NULL,
+                               cts.en.grns = en.grns, out.dir = "./", celltype = "predicted.id",
+                               min.pct = 0.25, logfc.threshold = 0.25, padj.cutoff = 0.05)
+qs::qsave(cts.en.regs, paste0(work.dir, "cell-type-specific-eRegulons.qsave"))
+names(cts.en.regs[[1]])
+head(cts.en.regs[[1]]$genes)
+head(cts.en.regs[[1]]$enhancers)
+head(cts.en.regs[[1]]$links)
+
+```
+
+
+## Evaluation of cell-type-specific eRegulons
+
+Firstly, we performed pathway enrichment analysis for gene lists in cell-type-specific eRegulons against Gene Ontology (GO) or KEGG.
+
+```{r}
+
+pathways <- enrich_genes(regs = cts.en.regs, dbs = "GO")
+sig.pathways <- pblapply(pathways, function(x) {
+  x[x$Adjusted.P.value < 0.05,, drop = FALSE]
+})
+qs::qsave(sig.pathways, paste0(work.dir, "enriched_pathways.qsave"))
+head(sig.pathways[[1]])
+
+```
+
+
+Then, we intersected the enhancer list of a cell-type-specific eRegulon against H3K27ac ChIP-seq peaks in CD4+ T cells with ENCODE accession code: 
+[ENCFF498QFU] (https://www.encodeproject.org/files/ENCFF498QFU/)
+
+```{r}
+
+chipseq.df <- read.table(paste0(work.dir, "ENCFF498QFU.bed"), sep = "\t") %>% dplyr::select(V1, V2, V3)
+chipseq.peaks <- StringToGRanges(paste0(chipseq.df[, 1], "-", chipseq.df[, 2], "-", chipseq.df[, 3]))
+permTest.res <- intersect_peaks(x = StringToGRanges(cts.en.regs[[1]]$enhancers), 
+                                y = chipseq.peaks)
+permTest.res$numOverlaps
+
+```
+
+Finally, we overlapped the enhancer-gene relations in a cell-type-specific eRegulon against enhancer-target pairs in CD4 TCM cells curated 
+by [scEnhancer] (http://enhanceratlas.net/scenhancer/data/download/interaction/hs/Memory_CD4_T_interaction.txt).
+
+```{r}
+
+# Preprocess the peak-gene interaction pairs in scEnhancer database
+enhGene.df <- read.table(paste0(work.dir, "Memory_CD4_T_interaction.txt"), sep = "\t") %>% dplyr::select(V1, V2)
+enhGene.pairs <- StringToGRanges(strsplit(enhGene.df$V1, split = "\\|") %>% sapply(., "[[", 1), sep = c(":", "-"))
+mcols(enhGene.pairs)$gene <- strsplit(enhGene.df$V2, split = "[\\||\\:]") %>% sapply(., "[[", 3)
+head(enhGene.pairs)
+
+```
+
+
+```{r}
+
+# Calculate the overlaps between enhancer-gene relations in a cell-type-specific eRegulon
+overlaps <- intersect_enhancer_gene_relations(x = resize(cts.en.regs[[1]]$links, width = 50000, fix = "center"), 
+                                              y = resize(enhGene.pairs, width = 50000, fix = "center") )
+overlaps
+
+```
+
+
+```{r}
+
+# Check session information
+sessionInfo()
+
+```

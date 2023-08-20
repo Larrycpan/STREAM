@@ -16,7 +16,7 @@ enrich_genes(regs = NULL, dbs = c("GO", "KEGG"), org = "human")
 }
 \description{
 This function aims to calculate the enrichment of genes in each eRegulon against
-gene ontology (GO) terms or KEGG patthways. Finally, this function returns a list of \code{data.frame}
+gene ontology (GO) terms or KEGG pathways. Finally, this function returns a list of \code{data.frame}
 objects, each of which represents one functional genomics databases, e.g., Biological Process,
 Molecular Function, Cellular Component, and KEGG pathways (human or mouse).
 }

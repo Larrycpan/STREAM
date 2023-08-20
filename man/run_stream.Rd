@@ -6,6 +6,7 @@
 \usage{
 run_stream(
   obj = NULL,
+  qubic.path = "/users/PAS1475/liyang/software/QUBIC2/qubic",
   candidate.TFs = NULL,
   peak.assay = "ATAC",
   var.genes = 3000,
@@ -38,6 +39,8 @@ run_stream(
 }
 \arguments{
 \item{obj}{A \code{Seurat} object composed of both scRNA-seq and scATAC-seq assays.}
+
+\item{qubic.path}{The path of the binary executable file of QUBIC2, e.g., "/users/PAS1475/liyang/software/QUBIC2/qubic"}
 
 \item{candidate.TFs}{The list of candidate TFs used to identify eRegulons and eGRNs, NULL by default.}
 

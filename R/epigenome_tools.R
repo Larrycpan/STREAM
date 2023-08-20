@@ -10,14 +10,20 @@ org_to_DB <- function(org = "hg38") {
   
   
   # Return the database
-  if (grepl("mm", org)) {
-    message ("Loading the database EnsDb.Mmusculus.v79 ...")
-    require(EnsDb.Mmusculus.v79)
+  if (org == "mm10") {
+    message ("Loading the database EnsDb.Mmusculus.v79 for assembly ", org)
+    quiet(require(EnsDb.Mmusculus.v79) )
     return(EnsDb.Mmusculus.v79)
-  } else {
-    message ("Loading the database EnsDb.Hsapiens.v86 ...")
-    require(EnsDb.Hsapiens.v86)
+  } else if (org == "hg19") {
+    message ("Loading the database EnsDb.Hsapiens.v75 for assembly ", org)
+    quiet(require(EnsDb.Hsapiens.v75) )
+    return(EnsDb.Hsapiens.v75)
+  } else if (org == "hg38") {
+    message ("Loading the database EnsDb.Hsapiens.v86 for assembly ", org)
+    quiet(require(EnsDb.Hsapiens.v86) )
     return(EnsDb.Hsapiens.v86)
+  } else {
+    stop ("No Ensembl Database is compatible with ", org)
   }
 }
 
