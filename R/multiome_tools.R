@@ -1099,6 +1099,7 @@ sub_mod <- function(HBCs, sim.m, G.list, n.cells, rna.list, block.list,
 
 #' Convert a pair of scRNA-seq and scATAC-seq mastrices into a \code{Seurat} object
 #'
+#' @import dplyr
 #' @keywords internal
 #'
 rna_atac_matrices_to_Seurat <- function(rna_counts = NULL, atac_counts = NULL,
@@ -1118,12 +1119,19 @@ rna_atac_matrices_to_Seurat <- function(rna_counts = NULL, atac_counts = NULL,
 
   # Now add in the ATAC-seq data
   # we'll only use peaks in standard chromosomes
-  grange.counts <- Signac::StringToGRanges(rownames(atac_counts), sep = sep)
-  seq_names <- BSgenome::seqnames(grange.counts)
-  standard_chromosomes <- GenomeInfoDb::standardChromosomes(grange.counts)
-  grange.use <- seq_names %in% standard_chromosomes
+  standard_chromosomes <- paste0("chr", c(1:40, "X", "Y") )
+  grange.use <- sapply(strsplit(rownames(atac_counts), split = sep ), function(x) {
+    x %in% standard_chromosomes
+  })
+  atac_counts <- atac_counts[grange.use,, drop = FALSE]
+  
+  
+  #grange.counts <- Signac::StringToGRanges(rownames(atac_counts), sep = sep)
+  # seq_names <- BSgenome::seqnames(grange.counts)
+  # standard_chromosomes <- GenomeInfoDb::standardChromosomes(grange.counts)
+  # grange.use <- seq_names %in% standard_chromosomes
   #grange.use <- BSgenome::seqnames(grange.counts) %in% GenomeInfoDb::standardChromosomes(grange.counts)
-  atac_counts <- atac_counts[as.vector(grange.use),, drop = FALSE]
+  #atac_counts <- atac_counts[as.vector(grange.use),, drop = FALSE]
   annotations <- Signac::GetGRangesFromEnsDb(ensdb = org_to_DB(org = org))
   ensembldb::seqlevelsStyle(annotations) <- 'UCSC'
   GenomeInfoDb::genome(annotations) <- org
