@@ -45,24 +45,24 @@ Run the following commands to load the STREAM library:
 ```{r}
 
 dyn.load(x = "/users/PAS1475/liyang/libs/hdf5_1.10.6/lib/libhdf5_hl.so.100")
-library(easypackages)
-libs <- c(
-  "qs", 
-  "hdf5r",
-  "Seurat",
-  "Signac", 
-  "pbmcapply", 
-  "pbapply", 
-  "parallel",
-  "EnsDb.Mmusculus.v79", 
-  "EnsDb.Hsapiens.v86",
-  "dplyr", 
-  "ggplot2", 
-  "ggpubr", 
-  "igraph", 
-  "Matrix"
-)
-libraries(libs)
+# library(easypackages)
+# libs <- c(
+#   "qs", 
+#   "hdf5r",
+#   "Seurat",
+#   "Signac", 
+#   "pbmcapply", 
+#   "pbapply", 
+#   "parallel",
+#   "EnsDb.Mmusculus.v79", 
+#   "EnsDb.Hsapiens.v86",
+#   "dplyr", 
+#   "ggplot2", 
+#   "ggpubr", 
+#   "igraph", 
+#   "Matrix"
+# )
+# libraries(libs)
 
 library(stream2)
 

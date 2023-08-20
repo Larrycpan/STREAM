@@ -1121,8 +1121,10 @@ rna_atac_matrices_to_Seurat <- function(rna_counts = NULL, atac_counts = NULL,
   # we'll only use peaks in standard chromosomes
   standard_chromosomes <- paste0("chr", c(1:40, "X", "Y") )
   grange.use <- sapply(strsplit(rownames(atac_counts), split = sep ), function(x) {
-    x %in% standard_chromosomes
+    x[1] %in% standard_chromosomes
   })
+  # message (class(grange.use))
+  # message (class(atac_counts))
   atac_counts <- atac_counts[grange.use,, drop = FALSE]
   
   
