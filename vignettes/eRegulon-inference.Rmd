@@ -54,12 +54,18 @@ libs <- c(
 libraries(libs)
 
 library(stream2)
-# source.dir <- "/fs/ess/PCON0022/liyang/STREAM/Codes/stream_v2/R/"
-# code.list <- list.files(source.dir, pattern = ".R")
-# lapply(code.list, function(x) {
-#   message (x)
-#   source(paste0(source.dir, x))
-# })
+
+```
+
+
+```{r, eval=TRUE, echo=FALSE}
+
+source.dir <- "/fs/ess/PCON0022/liyang/STREAM/Codes/stream_v2/R/"
+code.list <- list.files(source.dir, pattern = ".R")
+lapply(code.list, function(x) {
+  message (x)
+  source(paste0(source.dir, x))
+})
 
 ```
 

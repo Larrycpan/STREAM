@@ -630,7 +630,7 @@ create_rna_atac <- function(obj = NULL, ntfs = 5, ngenes = 50,
                             ) {
   
   # Parameters
-  multi.factor <- 100 # ensure there are enough candidate regulons
+  #multi.factor <- 100 # ensure there are enough candidate regulons
   message ("Loading TF binding sites from JASPAR 2022 ...")
   options(timeout = 2000)
   load(url(url.link))

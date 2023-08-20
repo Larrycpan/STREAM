@@ -1120,7 +1120,8 @@ rna_atac_matrices_to_Seurat <- function(rna_counts = NULL, atac_counts = NULL,
   # we'll only use peaks in standard chromosomes
   grange.counts <- Signac::StringToGRanges(rownames(atac_counts), sep = sep)
   grange.use <- BSgenome::seqnames(grange.counts) %in% GenomeInfoDb::standardChromosomes(grange.counts)
-  atac_counts <- atac_counts[as.vector(grange.use), ]
+  as.vector(as.vector(grange.use))
+  atac_counts <- atac_counts[as.vector(grange.use),, drop = FALSE]
   annotations <- Signac::GetGRangesFromEnsDb(ensdb = org_to_DB(org = org))
   ensembldb::seqlevelsStyle(annotations) <- 'UCSC'
   GenomeInfoDb::genome(annotations) <- org
