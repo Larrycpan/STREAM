@@ -1103,7 +1103,7 @@ sub_mod <- function(HBCs, sim.m, G.list, n.cells, rna.list, block.list,
 #'
 rna_atac_matrices_to_Seurat <- function(rna_counts = NULL, atac_counts = NULL,
                                         org = "hg38", frag.file = NULL,
-                                        sep = c("-", "-")) {
+                                        sep = c("-", "-") ) {
 
   # Parameters
   message ("Loaded scRNA-seq and scATAC-seq matrices of sizes: ", nrow(rna_counts),
@@ -1119,8 +1119,10 @@ rna_atac_matrices_to_Seurat <- function(rna_counts = NULL, atac_counts = NULL,
   # Now add in the ATAC-seq data
   # we'll only use peaks in standard chromosomes
   grange.counts <- Signac::StringToGRanges(rownames(atac_counts), sep = sep)
-  grange.use <- BSgenome::seqnames(grange.counts) %in% GenomeInfoDb::standardChromosomes(grange.counts)
-  message (as.vector(grange.use)[1], ", ", as.vector(grange.use)[2], ", ", as.vector(grange.use)[3])
+  seq_names <- BSgenome::seqnames(grange.counts)
+  standard_chromosomes <- GenomeInfoDb::standardChromosomes(grange.counts)
+  grange.use <- seq_names %in% standard_chromosomes
+  #grange.use <- BSgenome::seqnames(grange.counts) %in% GenomeInfoDb::standardChromosomes(grange.counts)
   atac_counts <- atac_counts[as.vector(grange.use),, drop = FALSE]
   annotations <- Signac::GetGRangesFromEnsDb(ensdb = org_to_DB(org = org))
   ensembldb::seqlevelsStyle(annotations) <- 'UCSC'
