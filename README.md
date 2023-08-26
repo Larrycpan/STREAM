@@ -4,7 +4,7 @@
 
 ![](https://github.com/YangLi-Bio/yangli-bio.github.io/raw/main/images/details.jpg)
 
-Before installing STREAM, please ensure you have already installed QUBIC2 in your system by following [this tutorial] (https://github.com/OSU-BMBL/QUBIC2).
+Before installing STREAM, please ensure you have already installed QUBIC2 in your system by following [this tutorial](https://github.com/OSU-BMBL/QUBIC2).
 
 You can install STREAM via below commands:
 ```R
@@ -70,9 +70,9 @@ devtools::install_github("YangLi-Bio/stream2")
 We provided the following tutorials to show how to use STREAM to build enhancer regulons (eRegulons) and enhancer-driven 
 gene regulatory networks (eGRNs) by using single-cell multiomics/multimodal data:
 
-* [Simulated data analyses](https://yangli-bio.github.io/stream2/articles/simul-analyses.html)
+* [Simulated data analyses](https://yangli-bio.github.io/stream2/articles/data-simulation.html)
 
-* [Biological data analyses](https://yangli-bio.github.io/stream2/articles/bio-analyses.html)
+* [Biological data analyses](https://yangli-bio.github.io/stream2/articles/eRegulon-inference.html)
 
 
 Please consider citing our paper if you used STREAM:
