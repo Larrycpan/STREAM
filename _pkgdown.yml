@@ -14,9 +14,9 @@ navbar:
       - text: "Vignettes"
         menu:
           - text: "Simulated data analyses"
-            href: "articles/simul-analyses.html"
+            href: "articles/data-simulation.html"
           - text: "Biological data analyses"
-            href: "articles/bio-analyses.html"
+            href: "articles/eRegulon-inference.html"
       - text: "Reference"
         href: "reference/index.html"
     right:
@@ -24,6 +24,7 @@ navbar:
         href: "https://github.com/YangLi-Bio/stream2"
 
 home:
+  src: "pkgdown/index.md"
   links:
    - text: Browse source code
      href: https://github.com/YangLi-Bio/stream2
