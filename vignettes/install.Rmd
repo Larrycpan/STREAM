@@ -4,11 +4,14 @@ output: html_document
 ---
 
 ```{r setup, include=FALSE}
+
 knitr::opts_chunk$set(echo = TRUE)
+
 ```
 
 You can install STREAM via below commands:
-```{r}
+```{r, eval=FALSE}
+
 # First, check and install the dependency packages using cran
 cran_packages <- c("data.table", "dplyr", "ggplot2", "igraph", "Matrix", 
                    "pbapply", "qgraph", "RColorBrewer", "RCurl", "Ryacas",
@@ -52,7 +55,7 @@ github_packages <- c(
                      "mskilab-org/gUtils",  
                      "cole-trapnell-lab/monocle3", 
                      "satijalab/Seurat", 
-                     "satijalab/Signac", 
+                     "satijalab/Signac"
                      )
 
 # Extracting package names from GitHub paths
@@ -66,10 +69,20 @@ if (length(to_install_github) > 0) {
 
 # Sixth, install STREAM
 devtools::install_github("YangLi-Bio/stream2")
+
+```
+
+
+```{r, echo=FALSE}
+
+message ("Skipping installation of 'stream2' and its dependencies from a github remote")
+
 ```
 
 
 ```{r}
+
 # Check session information
 sessionInfo()
+
 ```

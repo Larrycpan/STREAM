@@ -4,7 +4,8 @@
 
 ![](https://github.com/YangLi-Bio/yangli-bio.github.io/raw/main/images/details.jpg)
 
-Before installing STREAM, please ensure you have already installed QUBIC2 in your system by following [this tutorial](https://github.com/OSU-BMBL/QUBIC2).
+Before installing STREAM, please ensure you have already installed QUBIC2 in your system by following 
+[this tutorial](https://github.com/OSU-BMBL/QUBIC2).
 
 You can install STREAM via below commands:
 ```R
