@@ -1,6 +1,6 @@
 ### STREAM: enhancer-driven gene regulatory networks inference from single-cell RNA-seq and ATAC-seq data
 
-![Workflow of STREAM and applications](images/overview.jpg)
+![Workflow of STREAM and applications](images/workflow.jpg)
 
 ![Methodological details of STREAM](images/details.jpg)
 
