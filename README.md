@@ -1,9 +1,9 @@
 ### STREAM: enhancer-driven gene regulatory networks inference from single-cell RNA-seq and ATAC-seq data
 
-![Workflow of STREAM and applications](images/workflow.jpg)
+![Workflow of STREAM and applications](man/figures/workflow.jpg)
 
 For detailed methodology of STREAM, please refer to the following figure:
-![Methodological details of STREAM](images/details.jpg)
+![Methodological details of STREAM](man/figures/details.jpg)
 
 Before installing STREAM, please ensure you have already installed QUBIC2 in your system by following 
 [this tutorial](https://github.com/OSU-BMBL/QUBIC2).

@@ -15,4 +15,4 @@ It is based on several popular packages for single-cell transcriptome and chroma
 and [IRIS-FGM](https://bioconductor.org/packages/release/bioc/html/IRISFGM.html). 
 Picture below showed the methodological details of STREAM for eGRN inference.
 
-![](images/details.jpg)
+![](man/figures/details.jpg)

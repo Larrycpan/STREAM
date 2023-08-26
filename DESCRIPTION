@@ -1,4 +1,4 @@
-Package: stream2
+Package: stream
 Title: Enhancer-driven gene regulatory network inference from single-cell RNA-seq and ATAC-seq 
 Version: 2.0.0
 Date: 2023-1-27
