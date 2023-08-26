@@ -1,4 +1,5 @@
 url: https://yangli-bio.github.io/stream2/
+cran: NULL
 template:
   params:
     bootstrap: 5
