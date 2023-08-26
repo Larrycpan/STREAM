@@ -1,8 +1,8 @@
 ### STREAM: enhancer-driven gene regulatory networks inference from single-cell RNA-seq and ATAC-seq data
 
-![](https://github.com/YangLi-Bio/yangli-bio.github.io/raw/main/images/overview.jpg)
+![](https://github.com/YangLi-Bio/yangli-bio.github.io/stream2/master/images/overview.jpg)
 
-![](https://github.com/YangLi-Bio/yangli-bio.github.io/raw/main/images/details.jpg)
+![](https://github.com/YangLi-Bio/yangli-bio.github.io/stream2/master/images/details.jpg)
 
 Before installing STREAM, please ensure you have already installed QUBIC2 in your system by following 
 [this tutorial](https://github.com/OSU-BMBL/QUBIC2).
