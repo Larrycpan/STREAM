@@ -2,7 +2,7 @@
 
 ![Workflow of STREAM and applications](images/workflow.jpg)
 
-For detailed methodology of STREAM, please refer to the following::
+For detailed methodology of STREAM, please refer to the following figure:
 ![Methodological details of STREAM](images/details.jpg)
 
 Before installing STREAM, please ensure you have already installed QUBIC2 in your system by following 
