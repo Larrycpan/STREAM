@@ -1,5 +1,4 @@
 url: https://yangli-bio.github.io/stream2/
-cran: NULL
 template:
   params:
     bootstrap: 5
@@ -26,6 +25,7 @@ navbar:
 
 home:
   src: "pkgdown/index.md"
+  cran: false
   links:
    - text: Browse source code
      href: https://github.com/YangLi-Bio/stream2
