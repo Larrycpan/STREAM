@@ -11,7 +11,7 @@ from sets of co-regulated genes and co-accessible enhancers.
 Based on these strategies, STREAM operates through an iterative framework to find enhancer-driven regulons (eRegulons) based on both transcriptome 
 and chromatin accessibility data. eRegulons specific to a cell type collectively compose an eGRN. 
 It is based on several popular packages for single-cell transcriptome and chromatin accessibility analysis, particularly, 
-[Seurat](https://satijalab.org/seurat/), [Signac](https://satijalab.org/signac/index.htm), [cicero](https://cole-trapnell-lab.github.io/cicero-release/docs_m3/), 
+[Seurat](https://satijalab.org/seurat/), [Signac](https://stuartlab.org/signac/), [cicero](https://cole-trapnell-lab.github.io/cicero-release/docs_m3/), 
 and [IRIS-FGM](https://bioconductor.org/packages/release/bioc/html/IRISFGM.html). 
 Picture below showed the methodological details of STREAM for eGRN inference.
 

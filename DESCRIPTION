@@ -29,7 +29,7 @@ Authors@R:
     person(given = "Bingqiang", 
            family = "Liu", 
            email = "bingqiang@sdu.edu.cn", 
-           role = "aut", 
+           role = "ctb", 
            comment = c(ORCID = "0000-0002-5734-1135")), 
     person(given = "Qin", 
            family = "Ma", 

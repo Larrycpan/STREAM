@@ -106,7 +106,7 @@
 <div class="section level1">
 <div class="page-header"><h1 id="stream">STREAM<a class="anchor" aria-label="anchor" href="#stream"></a>
 </h1></div>
-<p>STREAM (<strong>S</strong>ingle-cell enhancer regula<strong>T</strong>ory netwo<strong>R</strong>k inference from gene <strong>E</strong>xpression <strong>A</strong>nd chro<strong>M</strong>atin accessibility) is a computational method specifically designed to infer enhancer-driven gene regulatory networks (eGRNs) by analyzing transcriptome and chromatin accessibility jointly profiled from the same single cells. The method aims to improve the mapping accuracy of relationships between transcription factors (TFs), enhancers, and target genes. The algorithm employs two main strategies. First, it uses a <a href="https://www.sciencedirect.com/science/article/pii/S1570866709000628" class="external-link">Steiner Forest Problem (SFP) model</a> based on a heterogeneous graph to identify enhancer-gene relations that are highly relevant in a specific context. Second, it incorporates a hybrid biclustering approach combined with <a href="https://link.springer.com/article/10.1007/s10626-019-00308-7" class="external-link">submodular optimization</a> to determine eGRNs by selecting an optimal subset from sets of co-regulated genes and co-accessible enhancers. Based on these strategies, STREAM operates through an iterative framework to find enhancer-driven regulons (eRegulons) based on both transcriptome and chromatin accessibility data. eRegulons specific to a cell type collectively compose an eGRN. It is based on several popular packages for single-cell transcriptome and chromatin accessibility analysis, particularly, <a href="https://satijalab.org/seurat/" class="external-link">Seurat</a>, <a href="https://satijalab.org/signac/index.htm" class="external-link">Signac</a>, <a href="https://cole-trapnell-lab.github.io/cicero-release/docs_m3/" class="external-link">cicero</a>, and <a href="https://bioconductor.org/packages/release/bioc/html/IRISFGM.html" class="external-link">IRIS-FGM</a>. Picture below showed the methodological details of STREAM for eGRN inference.</p>
+<p>STREAM (<strong>S</strong>ingle-cell enhancer regula<strong>T</strong>ory netwo<strong>R</strong>k inference from gene <strong>E</strong>xpression <strong>A</strong>nd chro<strong>M</strong>atin accessibility) is a computational method specifically designed to infer enhancer-driven gene regulatory networks (eGRNs) by analyzing transcriptome and chromatin accessibility jointly profiled from the same single cells. The method aims to improve the mapping accuracy of relationships between transcription factors (TFs), enhancers, and target genes. The algorithm employs two main strategies. First, it uses a <a href="https://www.sciencedirect.com/science/article/pii/S1570866709000628" class="external-link">Steiner Forest Problem (SFP) model</a> based on a heterogeneous graph to identify enhancer-gene relations that are highly relevant in a specific context. Second, it incorporates a hybrid biclustering approach combined with <a href="https://link.springer.com/article/10.1007/s10626-019-00308-7" class="external-link">submodular optimization</a> to determine eGRNs by selecting an optimal subset from sets of co-regulated genes and co-accessible enhancers. Based on these strategies, STREAM operates through an iterative framework to find enhancer-driven regulons (eRegulons) based on both transcriptome and chromatin accessibility data. eRegulons specific to a cell type collectively compose an eGRN. It is based on several popular packages for single-cell transcriptome and chromatin accessibility analysis, particularly, <a href="https://satijalab.org/seurat/" class="external-link">Seurat</a>, <a href="https://stuartlab.org/signac/" class="external-link">Signac</a>, <a href="https://cole-trapnell-lab.github.io/cicero-release/docs_m3/" class="external-link">cicero</a>, and <a href="https://bioconductor.org/packages/release/bioc/html/IRISFGM.html" class="external-link">IRIS-FGM</a>. Picture below showed the methodological details of STREAM for eGRN inference.</p>
 <p><img src="reference/figures/details.jpg"></p>
 </div>
   </div>
@@ -146,7 +146,6 @@
 <li>Yizhong Wang <br><small class="roles"> Author </small>  </li>
 <li>Qi Guo <br><small class="roles"> Author </small>  </li>
 <li>Cankun Wang <br><small class="roles"> Author </small> <a href="https://orcid.org/0000-0002-0225-9855" target="orcid.widget" aria-label="ORCID" class="external-link"><span class="fab fa-orcid orcid" aria-hidden="true"></span></a> </li>
-<li>Bingqiang Liu <br><small class="roles"> Author </small> <a href="https://orcid.org/0000-0002-5734-1135" target="orcid.widget" aria-label="ORCID" class="external-link"><span class="fab fa-orcid orcid" aria-hidden="true"></span></a> </li>
 <li><a href="authors.html">More about authors...</a></li>
 </ul>
 </div>
@@ -159,7 +158,7 @@
 
       <footer><div class="copyright">
   <p></p>
-<p>Developed by Yang Li, Anjun Ma, Yizhong Wang, Qi Guo, Cankun Wang, Bingqiang Liu.</p>
+<p>Developed by Yang Li, Anjun Ma, Yizhong Wang, Qi Guo, Cankun Wang.</p>
 </div>
 
 <div class="pkgdown">
