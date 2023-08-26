@@ -45,6 +45,7 @@
 #' @importFrom dplyr %>%
 #' @importFrom Signac Annotation
 #' @importFrom GenomeInfoDb seqlevelsStyle
+#' @importFrom pbapply pblapply
 #' @export
 #' 
 #' @return When running on a \code{Seurat} object,
@@ -323,7 +324,7 @@ run_stream <- function(obj = NULL,
   # Read QUBIC cells
   qubic.cells <- readLines(paste0(out.dir, "rna_counts.txt.chars.blocks")) %>% 
     grep(pattern = "^ Conds ", value = TRUE) %>% strsplit(., split = " ")
-  CoCond_cell <- pblapply(seq_along(qubic.cells), function(i) {
+  CoCond_cell <- pbapply::pblapply(seq_along(qubic.cells), function(i) {
     x <- qubic.cells[[i]]
     cell_name <- x[-(1:3)]
     data.frame(
@@ -338,7 +339,7 @@ run_stream <- function(obj = NULL,
   # Read QUBIC genes
   qubic.genes <- readLines(paste0(out.dir, "rna_counts.txt.chars.blocks")) %>% 
     grep(pattern = "^ Genes ", value = TRUE) %>% strsplit(., split = " ")
-  CoReg_gene <- pblapply(seq_along(qubic.genes), function(i) {
+  CoReg_gene <- pbapply::pblapply(seq_along(qubic.genes), function(i) {
     x <- qubic.genes[[i]]
     Gene <- x[-(1:3)] %>% strsplit(., split = "_") %>% sapply(., "[", 1) %>% unique
     data.frame(
@@ -976,6 +977,7 @@ get_cts_en_GRNs <- function(obj = NULL, celltype = "seurat_clusters",
 #' gene regulatory networks (eGRNs) and then identify the cell-type-specific eRegulons in each cell type/cluster.
 #' 
 #' @importFrom dplyr %>%
+#' @import Seurat
 #'
 #' @export
 #' @rdname get_cts_en_regs
@@ -1018,7 +1020,7 @@ get_cts_en_regs <- function(obj = NULL, peak.assay = "ATAC", de.genes = NULL, ce
     message ("Need to filter genes based on differential expression.\n", 
              "Predicting differentially expressed genes (DEGs) ...")
     Seurat::DefaultAssay(obj) <- "RNA"
-    Idents(obj) <- stats::setNames(obj@meta.data[, celltype], colnames(obj))
+    Seurat::Idents(obj) <- stats::setNames(obj@meta.data[, celltype], colnames(obj))
     future::plan("multicore", workers = 4)
     de.genes <- Seurat::FindAllMarkers(obj, only.pos = TRUE,
                                        min.pct = min.pct, logfc.threshold = logfc.threshold)
@@ -1307,6 +1309,8 @@ intersect_peaks_in_batch <- function(x.ll, y.ll, n.times = 100) {
 #' 
 #' @export
 #' @rdname enrich_genes
+#' 
+#' @import pbapply
 #' 
 #' @param regs The list of enhancer regulons (eRegulons) or cell-type-specific eRegulons.
 #' @param dbs The list of databases to run enrichment analysis, c("GO", "KEGG") by default.

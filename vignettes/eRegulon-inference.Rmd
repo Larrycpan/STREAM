@@ -1,5 +1,5 @@
 ---
-title: "From Simulation to Insight: Inferring eRegulons and eGRNs using STREAM"
+title: "STREAM: A comprehensive guide to inferring enhancer-driven gene regulatory networks from scRNA-seq and scATAC-seq data"
 output: html_document
 date: 'Compiled: `r format(Sys.Date(), "%B %d, %Y")`'
 ---
@@ -17,10 +17,10 @@ opts_knit$set(root.dir = work.dir)
 In this tutorial, we will guide you through the process of inferring enhancer regulons, known as eRegulons, and enhancer-driven 
 gene regulatory networks or eGRNs, utilizing the STREAM tool. Our demonstration leverages a select subset of data from the 
 publicly accessible 10x Genomics Multiome dataset, specifically focusing on human Peripheral Blood Mononuclear Cells (PBMCs).
-For those interested in the comprehensive dataset, the raw data captured by the 10X Genomics Multiome ATAC+GEX can be downloaded directly from [10x Genomics] 
-(https://www.10xgenomics.com/resources/datasets/pbmc-from-a-healthy-donor-granulocytes-removed-through-cell-sorting-10-k-1-standard-1-0-0). 
-As for our tutorial, the subsetted data we employ, stored in a Seurat object format, is available for download on [Figshare]
-(https://figshare.com/ndownloader/files/42039747).
+For those interested in the comprehensive dataset, the raw data captured by the 10X Genomics Multiome ATAC+GEX can be downloaded directly from 
+[10x Genomics](https://www.10xgenomics.com/resources/datasets/pbmc-from-a-healthy-donor-granulocytes-removed-through-cell-sorting-10-k-1-standard-1-0-0). 
+As for our tutorial, the subsetted data we employ, stored in a Seurat object format, is available for download on 
+[Figshare](https://figshare.com/ndownloader/files/42039747).
 
 Initially, we ran STREAM on the PBMC data to infer eRegulons, each of which includes its regulating TF, its included genes and 
 enhancers (and their relations), as well as the eRegulon-active cells. We evaluated these eRegulons from three perspectives, i.e., 
@@ -31,34 +31,34 @@ If the eRegulon-active cells are significantly enriched in a cell type (e.g., CD
 cell-type-active eRegulon (CD4 TCM-active eRegulon). For each cell type, we merged all cell-type-active eRegulons, leading to 
 an eGRN. Finally, by splitting the eGRN into sub-networks according to the regulating TFs, we obtained cell-type-specific eRegulons. 
 
-```{r}
+```{r, eval = TRUE, echo = TRUE}
 
 dyn.load(x = "/users/PAS1475/liyang/libs/hdf5_1.10.6/lib/libhdf5_hl.so.100")
-library(easypackages)
-libs <- c(
-  "qs", 
-  "hdf5r",
-  "Seurat",
-  "Signac", 
-  "pbmcapply", 
-  "pbapply", 
-  "parallel",
-  "EnsDb.Mmusculus.v79", 
-  "EnsDb.Hsapiens.v86",
-  "dplyr", 
-  "ggplot2", 
-  "ggpubr", 
-  "igraph", 
-  "Matrix"
-)
-libraries(libs)
+# library(easypackages)
+# libs <- c(
+#   "qs", 
+#   "hdf5r",
+#   "Seurat",
+#   "Signac", 
+#   "pbmcapply", 
+#   "pbapply", 
+#   "parallel",
+#   "EnsDb.Mmusculus.v79", 
+#   "EnsDb.Hsapiens.v86",
+#   "dplyr", 
+#   "ggplot2", 
+#   "ggpubr", 
+#   "igraph", 
+#   "Matrix"
+# )
+# libraries(libs)
 
 library(stream2)
 
 ```
 
 
-```{r, eval=TRUE, echo=FALSE}
+```{r, eval=FALSE, echo=FALSE}
 
 source.dir <- "/fs/ess/PCON0022/liyang/STREAM/Codes/stream_v2/R/"
 code.list <- list.files(source.dir, pattern = ".R")
@@ -151,8 +151,9 @@ Firstly, we performed pathway enrichment analysis for gene lists in cell-type-sp
 
 ```{r}
 
+library(pbapply)
 pathways <- enrich_genes(regs = cts.en.regs, dbs = "GO")
-sig.pathways <- pblapply(pathways, function(x) {
+sig.pathways <- pbapply::pblapply(pathways, function(x) {
   x[x$Adjusted.P.value < 0.05,, drop = FALSE]
 })
 qs::qsave(sig.pathways, paste0(work.dir, "enriched_pathways.qsave"))
@@ -166,9 +167,11 @@ Then, we intersected the enhancer list of a cell-type-specific eRegulon against 
 
 ```{r}
 
+library(dplyr)
+library(Signac)
 chipseq.df <- read.table(paste0(work.dir, "ENCFF498QFU.bed"), sep = "\t") %>% dplyr::select(V1, V2, V3)
 chipseq.peaks <- StringToGRanges(paste0(chipseq.df[, 1], "-", chipseq.df[, 2], "-", chipseq.df[, 3]))
-permTest.res <- intersect_peaks(x = StringToGRanges(cts.en.regs[[1]]$enhancers), 
+permTest.res <- intersect_peaks(x = Signac::StringToGRanges(cts.en.regs[[1]]$enhancers), 
                                 y = chipseq.peaks)
 permTest.res$numOverlaps
 
@@ -181,7 +184,7 @@ by [scEnhancer] (http://enhanceratlas.net/scenhancer/data/download/interaction/h
 
 # Preprocess the peak-gene interaction pairs in scEnhancer database
 enhGene.df <- read.table(paste0(work.dir, "Memory_CD4_T_interaction.txt"), sep = "\t") %>% dplyr::select(V1, V2)
-enhGene.pairs <- StringToGRanges(strsplit(enhGene.df$V1, split = "\\|") %>% sapply(., "[[", 1), sep = c(":", "-"))
+enhGene.pairs <- Signac::StringToGRanges(strsplit(enhGene.df$V1, split = "\\|") %>% sapply(., "[[", 1), sep = c(":", "-"))
 mcols(enhGene.pairs)$gene <- strsplit(enhGene.df$V2, split = "[\\||\\:]") %>% sapply(., "[[", 3)
 head(enhGene.pairs)
 

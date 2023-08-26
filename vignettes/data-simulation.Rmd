@@ -14,9 +14,9 @@ opts_knit$set(root.dir = work.dir)
 ```
 
 In this tutorial, we will generate a simulated dataset that jointly profiles scRNA-seq and scATAC-seq, 
-drawing upon a [Seurat object] (https://satijalab.org/seurat/articles/weighted_nearest_neighbor_analysis#wnn-analysis-of-10x-multiome-rna-atac) 
-composed of both scRNA-seq and scATAC-seq assays, [DoRothEA] (https://saezlab.github.io/dorothea/) — a gene regulatory network (GRN) 
-enriched with signed transcription factor (TF), and [JASPAR] (https://jaspar.genereg.net/) — a collection of curated, 
+drawing upon a [Seurat object](https://satijalab.org/seurat/articles/weighted_nearest_neighbor_analysis#wnn-analysis-of-10x-multiome-rna-atac) 
+composed of both scRNA-seq and scATAC-seq assays, [DoRothEA](https://saezlab.github.io/dorothea/) — a gene regulatory network (GRN) 
+enriched with signed transcription factor (TF), and [JASPAR](https://jaspar.genereg.net/) — a collection of curated, 
 non-redundant TF binding profiles to target gene interactions. Using this simulated dataset, 
 we will subsequently infer enhancer regulons (eRegulons) and derive enhancer-driven GRNs (eGRNs).
 
@@ -42,7 +42,7 @@ by a transcription factor via roughly two enhancers.
 
 Run the following commands to load the STREAM library:
 
-```{r}
+```{r, eval=TRUE}
 
 dyn.load(x = "/users/PAS1475/liyang/libs/hdf5_1.10.6/lib/libhdf5_hl.so.100")
 # library(easypackages)
@@ -69,7 +69,7 @@ library(stream2)
 ```
 
 
-```{r, eval=TRUE, echo=FALSE}
+```{r, eval=FALSE, echo=FALSE}
 
 source.dir <- "/fs/ess/PCON0022/liyang/STREAM/Codes/stream_v2/R/"
 code.list <- list.files(source.dir, pattern = ".R")
