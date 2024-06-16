@@ -40,6 +40,10 @@
 #' @param filter_peaks_for_cicero Whether filter the peaks in a neighborhood of the \code{Signac} results 
 #' before running \code{cicero}, FALSE by default.
 #' @param candidate.TFs The list of candidate TFs used to identify eRegulons and eGRNs, NULL by default.
+#' @param signac.method The method used to calculate correlation between peaks and genes; "pearson", "spearman", and 
+#' "partial.cor " can be chosen; "pearson" by default.
+#' @param cicero.method The method leveraged to compute correlation between peaks; "covariance" and "partial.cor" 
+#' can be selected; "covariance" by default.
 #'
 #' @rdname run_stream
 #' @importFrom dplyr %>%
@@ -103,7 +107,9 @@ run_stream <- function(obj = NULL,
                        filter_peaks_for_cicero = FALSE,
                        ifWeighted = TRUE,
                        cicero.covar = -Inf,
+                       cicero.method = "covariance",
                        signac.score = -Inf,
+                       signac.method = "pearson",
                        signac.pval = Inf,
                        intra.cutoff = 1.0,
                        inter.cutoff = 0.80,
@@ -364,11 +370,14 @@ run_stream <- function(obj = NULL,
   #                     rownames(Seurat::GetAssayData(obj, assay = "RNA", slot = "data")))
   
   
+  #message ("11111111\n")
   rna.dis <- subset(x = LTMG_discrete,
                     rownames(LTMG_discrete) %in%
                       rownames(Seurat::GetAssayData(obj, assay = "RNA", slot = "data")))
+  #message ("22222222\n")
   atac.dis <- binarize(Seurat::GetAssayData(object = obj, slot = 'data',
                                     assay = peak.assay))
+  #message ("3333333333333\n")
   link.ratio <- sapply(apply(links.df, 2, unique), length)
   
   
@@ -388,7 +397,8 @@ run_stream <- function(obj = NULL,
                             atac.dis = atac.dis, n.blocks = n.blocks, 
                             max.peaks = round(nrow(rna.dis) * link.ratio[1] / link.ratio[2]),
                             peak.assay = peak.assay)
-
+  #message ("444444444444444444\n")
+  
   
   flags <- sapply(obj.list, is.not.null)
   obj.list <- obj.list[flags]
@@ -402,11 +412,14 @@ run_stream <- function(obj = NULL,
 
 
   # Construct heterogeneous graphs
+  #message ("555555555555555555\n")
   G.list <- build_graph(obj.list = obj.list, obj = obj, rna.dis = rna.dis,
                         atac.dis = atac.dis, ifWeighted = ifWeighted,
-                      distance = distance, cicero.covar = cicero.covar,
+                      distance = distance, cicero.covar = cicero.covar, 
+                      cicero.method = cicero.method,
                       org.gs = org.gs, peak.assay = peak.assay,
                       signac.score = signac.score, signac.pval = signac.pval,
+                      signac.method = signac.method,
                       filter_peaks_for_cicero = filter_peaks_for_cicero,
                       min.cells = min.cells, out.dir = out.dir)
   flags <- sapply(G.list, is.not.null) # whether the graph is empty

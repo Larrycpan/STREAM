@@ -118,6 +118,7 @@ Imports:
     parallel,
     pbapply,
     pbmcapply,
+    ppcor,
     qgraph,
     qualV,
     RColorBrewer,

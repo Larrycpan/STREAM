@@ -269,6 +269,43 @@ link_peaks_to_genes <- function(peak.obj = c("chrX-192989-220023", "chr2-1780950
 
 
 
+#' Calculate partial correlation between columns of two matrices, of which the 
+#' second one has only one column
+#' 
+#' @keywords internal
+#' 
+#' @importFrom ppcor pcor.test
+#' 
+corPartial <- function(X, Y) {
+  # Ensure column names are unique
+  colnames(X) <- make.unique(colnames(X))
+  
+  # X: the chromatin accessibility matrix
+  # Y: the gene expression matrix
+  n_features <- ncol(X)
+  partial_corrs <- numeric(n_features)
+  
+  for (i in 1:n_features) {
+    # X without the i-th feature
+    X_other <- X[, -i, drop = FALSE]
+    
+    # Regress Y on X_other
+    fit_Y <- lm(as.vector(Y) ~ ., data = as.data.frame(X_other))
+    Y_residual <- resid(fit_Y)
+    
+    # Regress Xi on X_other
+    fit_Xi <- lm(as.vector(X[, i]) ~ ., data=as.data.frame(X_other))
+    Xi_residual <- resid(fit_Xi)
+    
+    # Compute the correlation between residuals
+    partial_corrs[i] <- cor(Y_residual, Xi_residual)
+  }
+  
+  return(matrix(partial_corrs, ncol = 1))
+}
+
+
+
 #' Link peaks to genes using \code{Signac} functions
 #'
 #' @keywords internal
@@ -281,7 +318,7 @@ link_peaks <- function(object, peak.assay = "ATAC", expression.assay = "RNA",
                         expression.slot = "data", method = "pearson", gene.coords = NULL, 
                         distance = 5e+05, min.distance = NULL, min.cells = 10, genes.use = NULL, 
                         n_sample = 100, pvalue_cutoff = 0.05, score_cutoff = 0.05, 
-                        gene.id = FALSE, verbose = TRUE) {
+                        gene.id = FALSE, verbose = TRUE ) {
   
   if (!requireNamespace(package = "qlcMatrix", quietly = TRUE)) {
     stop("Please install qlcMatrix: install.packages('qlcMatrix')")
@@ -305,9 +342,13 @@ link_peaks <- function(object, peak.assay = "ATAC", expression.assay = "RNA",
     cor_method <- qlcMatrix::corSparse
   } else if (method == "spearman") {
     cor_method <- SparseSpearmanCor
+  } else if (method == "partial.cor") {
+    cor_method <- corPartial
+    n_sample <- 20
   } else {
-    stop("method can be one of 'pearson' or 'spearman'.")
+    stop("method can be one of 'pearson' or 'spearman' or 'partial.cor'.")
   }
+  message (method, " is used to calculate enhancer-gene relations ...\n")
   if (is.null(x = gene.coords)) {
     annot <- Signac::Annotation(object = object[[peak.assay]])
     if (is.null(x = annot)) {

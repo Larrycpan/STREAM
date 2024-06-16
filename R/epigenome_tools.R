@@ -251,9 +251,41 @@ get_rho_mat <- function(dist_matrix, distance_parameter, s) {
 
 #'
 #' @keyword internal
+#'
+
+partial_cor <- function(x) {
+  
+  # Convert to dense matrix if input is sparse
+  x_dense <- as.matrix(x)
+  
+  # Calculate the inverse of the covariance matrix
+  inv_cov_matrix <- solve(cov(x_dense))
+  
+  # Calculate partial correlations
+  diag_inv_cov <- sqrt(diag(inv_cov_matrix))
+  partial_corr_matrix <- -inv_cov_matrix / outer(diag_inv_cov, diag_inv_cov)
+  diag(partial_corr_matrix) <- 1
+  
+  # Convert the result back to the original format
+  # if (inherits(x, "dgCMatrix")) {
+  #   partial_corr_matrix <- as(partial_corr_matrix, "dgCMatrix")
+  # } else {
+  #   partial_corr_matrix <- as(partial_corr_matrix, "Matrix")
+  # }
+  partial_corr_matrix <- as.matrix(partial_corr_matrix)
+  
+  return(partial_corr_matrix)
+}
+
+
+
+#'
+#' @keyword internal
 #' 
-generate_cicero_models <- function(cds, distance_parameter, s = 0.75, window = 5e+05,
-                                   max_elements = 200, genomic_coords = NULL) {
+generate_cicero_models <- function(cds, distance_parameter, 
+                                   s = 0.75, window = 5e+05, 
+                                   method = "covariance",
+                                   max_elements = 200, genomic_coords = NULL ) {
 
   assertthat::assert_that(is(cds, "cell_data_set"))
   assertthat::assert_that(assertthat::is.number(distance_parameter))
@@ -268,6 +300,7 @@ generate_cicero_models <- function(cds, distance_parameter, s = 0.75, window = 5
   monocle3::fData(cds)$chr <- gsub("chr", "", monocle3::fData(cds)$chr)
   monocle3::fData(cds)$bp1 <- as.numeric(as.character(monocle3::fData(cds)$bp1))
   monocle3::fData(cds)$bp2 <- as.numeric(as.character(monocle3::fData(cds)$bp2))
+  message (method, " is used to calculate enhancer-enhancer relations ...\n")
   outlist <- pbmcapply::pbmclapply(seq_len(length(grs)), 
                                    mc.cores = max(parallel::detectCores() / 2, 1),
                                    function(win) {
@@ -283,7 +316,11 @@ generate_cicero_models <- function(cds, distance_parameter, s = 0.75, window = 5
                                      rho_mat <- get_rho_mat(dist_matrix, distance_parameter,
                                                             s)
                                      vals <- Matrix::as.matrix(monocle3::exprs(win_range))
-                                     cov_mat <- cov(t(vals))
+                                     if (method == "partial.cor") {
+                                       cov_mat <- partial_cor(t(vals) )
+                                     } else {
+                                       cov_mat <- cov(t(vals))
+                                     }
                                      Matrix::diag(cov_mat) <- diag(cov_mat) + 1e-04
                                      GL <- glasso::glasso(cov_mat, rho_mat)
                                      colnames(GL$w) <- row.names(GL$w) <- row.names(vals)
@@ -406,6 +443,7 @@ run_cicero <- function(cds,
                        genomic_coords,
                        window = 5e+5,
                        silent = FALSE,
+                       method = "covariance",
                        sample_num = 100 ) {
   
   # Check input
@@ -416,6 +454,9 @@ run_cicero <- function(cds,
   if (!is.data.frame(genomic_coords)) {
     assertthat::is.readable(genomic_coords)
   }
+  if (method == "partial.cor") {
+    sample_num <- 20
+  }
   
   if (!silent) print("Starting Cicero")
   if (!silent) print("Calculating distance_parameter value")
@@ -423,7 +464,7 @@ run_cicero <- function(cds,
                                                       maxit = 100, sample_num = sample_num,
                                                       distance_constraint = 250000,
                                                       distance_parameter_convergence = 1e-22,
-                                                      genomic_coords = genomic_coords)
+                                                      genomic_coords = genomic_coords )
   
   mean_distance_parameter <- mean(unlist(distance_parameters))
   
@@ -431,7 +472,7 @@ run_cicero <- function(cds,
   cicero_out <-
     generate_cicero_models(cds,
                            distance_parameter = mean_distance_parameter,
-                           window = window,
+                           window = window, method = method,
                            genomic_coords = genomic_coords)
   
   if (!silent) print("Assembling connections")

@@ -72,7 +72,9 @@ subset_GR_intervals <- function(GR = NULL, distance = 5e+05,
 #' @import SingleCellExperiment
 #'
 build_graph <- function(obj.list, obj = NULL, rna.dis, atac.dis,
-                        distance = 5e+5, cicero.covar = -Inf,
+                        distance = 5e+5, cicero.covar = -Inf, 
+                        cicero.method = 'covariance',
+                        signac.method = 'pearson',
                         org.gs = BSgenome.Hsapiens.UCSC.hg38,
                         signac.score = -Inf, signac.pval = Inf,
                         min.cells = 10, ifWeighted = FALSE, 
@@ -82,7 +84,7 @@ build_graph <- function(obj.list, obj = NULL, rna.dis, atac.dis,
   # Link enhancers to genes
   Seurat::DefaultAssay(obj) <- peak.assay
   obj <- link_peaks(object = obj, peak.assay = peak.assay, expression.assay = "RNA",
-                   expression.slot = "data", distance = distance,
+                   expression.slot = "data", distance = distance, method = signac.method,
                    pvalue_cutoff = signac.pval, score_cutoff = signac.score)
   signac.links <- stats::setNames(data.frame(obj[[peak.assay]]@links$peak,
                                              obj[[peak.assay]]@links$gene), 
@@ -114,7 +116,7 @@ build_graph <- function(obj.list, obj = NULL, rna.dis, atac.dis,
   genome.info <- data.frame(org.gs@seqinfo@seqnames,
                             org.gs@seqinfo@seqlengths) # genome sequence lengths
   colnames(genome.info) <- c("seqnames", "seqlengths") # rename the columns
-  cicero.links <- run_cicero(cds = cicero.cds, genomic_coords = genome.info,
+  cicero.links <- run_cicero(cds = cicero.cds, genomic_coords = genome.info, method = cicero.method,
                              window = distance ) # build peak-peak linkages using Cicero
   colnames(cicero.links) <- c('node1', 'node2', 'weight')
   cicero.links$node2 <- as.character(cicero.links$node2) # convert factors into characters
