@@ -4,11 +4,11 @@ output: html_document
 date: 'Compiled: `r format(Sys.Date(), "%B %d, %Y")`'
 ---
 
-```{r setup, include=FALSE}
+```{r setup, include=FALSE, warning=FALSE, message=FALSE}
 
 library(knitr)
 knitr::opts_chunk$set(echo = TRUE)
-work.dir <- "/fs/scratch/PCON0022/liyang/STREAM-revision/tutorial-simul/"
+work.dir <- "/fs/ess/PCON0022/liyang/STREAM-BIB/tutorial-simul/"
 opts_knit$set(root.dir = work.dir)
 
 ```
@@ -22,7 +22,7 @@ we will subsequently infer enhancer regulons (eRegulons) and derive enhancer-dri
 
 Initially, we selected a subset of TFs at random from the JASPAR 2022 database, along with their 
 curated binding sites. Utilizing these TF binding sites, we identified peaks associated with these TFs. From the regulon 
-genes in DoRothEA, we randomly chose certain genes as target genes for these TFs. For each TF, we associated every target 
+genes in `DoRothEA`, we randomly chose certain genes as target genes for these TFs. For each TF, we associated every target 
 gene with a set of TF binding peaks that are located within a predetermined distance from the gene's transcription start 
 site (TSS). We consider these eRegulons peaks as enhancers.
 
@@ -40,36 +40,17 @@ Execute the commands below to simulate a dataset. The scRNA-seq matrix has dimen
 sized at 3000 x 1000. The dataset encompasses five eRegulons. Each eRegulon contains around 100 target genes, and each gene is modulated 
 by a transcription factor via roughly two enhancers.
 
-Run the following commands to load the STREAM library:
+Run the following commands to load the `STREAM` library:
 
-```{r, eval=TRUE}
+```{r, eval=TRUE, warning=FALSE, message=FALSE}
 
 dyn.load(x = "/users/PAS1475/liyang/libs/hdf5_1.10.6/lib/libhdf5_hl.so.100")
-# library(easypackages)
-# libs <- c(
-#   "qs", 
-#   "hdf5r",
-#   "Seurat",
-#   "Signac", 
-#   "pbmcapply", 
-#   "pbapply", 
-#   "parallel",
-#   "EnsDb.Mmusculus.v79", 
-#   "EnsDb.Hsapiens.v86",
-#   "dplyr", 
-#   "ggplot2", 
-#   "ggpubr", 
-#   "igraph", 
-#   "Matrix"
-# )
-# libraries(libs)
-
 library(stream2)
 
 ```
 
 
-```{r, eval=FALSE, echo=FALSE}
+```{r, eval=FALSE, echo=FALSE, warning=FALSE, message=FALSE}
 
 source.dir <- "/fs/ess/PCON0022/liyang/STREAM/Codes/stream_v2/R/"
 code.list <- list.files(source.dir, pattern = ".R")
@@ -83,12 +64,35 @@ lapply(code.list, function(x) {
 
 ## Data simulation
 
-Load a Seurat object that comprises jointly profiled scRNA-seq and scATAC-seq assays derived from human PBMCs and produce simulated data. 
-Based on this object, construct a simulated Seurat object encompassing 1,000 genes, 3,000 peaks, and 1,000 cells. 
-This object features five eRegulons, with each eRegulon linked to roughly five target genes and approximately two enhancers. 
-These eRegulons are active in 100 cells.
+Load a Seurat object that contains jointly profiled scRNA-seq and scATAC-seq assays derived from human PBMCs, 
+and generate simulated data based on this object. Construct a simulated Seurat object comprising 1,000 genes, 
+3,000 peaks, and 1,000 cells. This object should feature five eRegulons regulated by five different TFs, 
+with each eRegulon linked to approximately fifty target genes. Each target gene should be associated with roughly two enhancers. 
+These eRegulons should be active in 100 cells.
 
-```{r}
+In the function `create_rna_atac`, variable annotations are given as follows:
+
+* `obj`: `Seurat` object composed of both RNA and ATAC assays
+
+* `ntfs`: Number of eRegulons/TFs to be implanted
+
+* `ngenes`: Average number of genes in eRegulons to be implanted
+
+* `ncells`: Average number of cells in eRegulons to be implanted
+
+* `all.genes`: Number of genes in dataset to be simulated
+
+* `all.enhs`: Number of peaks in dataset to be simulated
+
+* `all.cells`: Number of cells in dataset to be simulated
+
+* `org`: Organism assembly version
+
+* `atac.assay`: Name of the ATAC assay
+
+* `gene.links`: Average number of enhancers linked to each gene
+
+```{r, warning=FALSE, message=FALSE, message=FALSE}
 
 pbmc <- qs::qread(paste0(work.dir, "tutorial_pbmc.qsave"))
 pbmc
@@ -105,7 +109,7 @@ sapply(simul$HBCs, "[[", "TF")
 ```
 
 
-```{r}
+```{r, eval=FALSE, echo=FALSE, message=FALSE}
 
 # Check session information
 sessionInfo()

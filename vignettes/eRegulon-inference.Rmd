@@ -4,11 +4,11 @@ output: html_document
 date: 'Compiled: `r format(Sys.Date(), "%B %d, %Y")`'
 ---
 
-```{r setup, include = FALSE}
+```{r setup, include = FALSE, warning=FALSE, message=FALSE}
 
 library(knitr)
 knitr::opts_chunk$set(echo = TRUE)
-work.dir <- "/fs/scratch/PCON0022/liyang/STREAM-revision/tutorial-pbmc/"
+work.dir <- "/fs/ess/PCON0022/liyang/STREAM-BIB/tutorial-simul/"
 opts_knit$set(root.dir = work.dir)
 
 ```
@@ -31,34 +31,15 @@ If the eRegulon-active cells are significantly enriched in a cell type (e.g., CD
 cell-type-active eRegulon (CD4 TCM-active eRegulon). For each cell type, we merged all cell-type-active eRegulons, leading to 
 an eGRN. Finally, by splitting the eGRN into sub-networks according to the regulating TFs, we obtained cell-type-specific eRegulons. 
 
-```{r, eval = TRUE, echo = TRUE}
+```{r, eval = TRUE, echo = TRUE, warning=FALSE, message=FALSE}
 
 dyn.load(x = "/users/PAS1475/liyang/libs/hdf5_1.10.6/lib/libhdf5_hl.so.100")
-# library(easypackages)
-# libs <- c(
-#   "qs", 
-#   "hdf5r",
-#   "Seurat",
-#   "Signac", 
-#   "pbmcapply", 
-#   "pbapply", 
-#   "parallel",
-#   "EnsDb.Mmusculus.v79", 
-#   "EnsDb.Hsapiens.v86",
-#   "dplyr", 
-#   "ggplot2", 
-#   "ggpubr", 
-#   "igraph", 
-#   "Matrix"
-# )
-# libraries(libs)
-
-library(stream2)
+suppressWarnings(invisible(library(stream2) ) )
 
 ```
 
 
-```{r, eval=FALSE, echo=FALSE}
+```{r, eval=FALSE, echo=FALSE, warning=FALSE, message=FALSE}
 
 source.dir <- "/fs/ess/PCON0022/liyang/STREAM/Codes/stream_v2/R/"
 code.list <- list.files(source.dir, pattern = ".R")
@@ -72,9 +53,9 @@ lapply(code.list, function(x) {
 
 ## Data loading
 
-Load a Seurat object containing jointly profiled scRNA-seq and scATAC-seq assays from human PBMCs.
+Load a `Seurat` object containing jointly profiled scRNA-seq and scATAC-seq assays from human PBMCs.
 
-```{r}
+```{r, warning=FALSE, message=FALSE, warning=FALSE, message=FALSE}
 
 pbmc <- qs::qread(paste0(work.dir, "tutorial_pbmc.qsave"))
 pbmc
@@ -83,12 +64,45 @@ pbmc
 
 ## eRegulon inference
 
-Run STREAM on the Seurat object with default parameters.
+Run STREAM on the Seurat object with default parameters. 
 
-```{r}
+In the function `run_stream`, variable annotations are presented as follows:
+
+* `obj`: `Seurat` object composed of both RNA and ATAC assays
+
+* `qubic.path`: File path of the `QUBIC2` biclustering program
+
+* `peak.assay`: Name of the ATAC assay
+
+* `var.genes`: Number of highly variable genes for LTMG modeling
+
+* `top.peaks`: Number of top-ranked peaks to build heterogeneous graph
+
+* `min.cells`: Minimum number of cells for quality control
+
+* `org`: Organism assembly version
+
+* `c.cutoff`: Cutoff of expression consistency among genes in the core part of hybrid biclusters
+
+* `distance`: Size of window to connect co-accessible peaks
+
+* `BlockOverlap`: Threshold of overlap between prior identified hybrid biclusters and the current seed
+
+* `Extension`: Cutoff of expression consistency among genes in the dual part of hybrid biclusters
+
+When it comes to jointly profiled RNA+ATAC data via different techniques, we suggest different strategies. For datasets with low scRNA-seq depth 
+(e.g., [SHARE-seq](https://www.sciencedirect.com/science/article/pii/S0092867420312538)), 
+we recommend imputation using mainstream approaches like [MAGIC](https://www.cell.com/cell/pdf/S0092-8674(18)30724-4.pdf), 
+[SAVER](https://www.nature.com/articles/s41592-018-0033-z), and [scImpute](https://www.nature.com/articles/s41467-018-03405-7). 
+For datasets with low coverage in both modalities (e.g., [SNARE-seq](https://www.nature.com/articles/s41587-019-0290-0) 
+and [PAIRED-seq](https://www.nature.com/articles/s41594-019-0323-x)), 
+we suggest using [SEACells](https://www.nature.com/articles/s41587-023-01716-9) to build metacells by pooling similar cells. 
+For PAIRED-seq, which has even lower coverage than SNARE-seq, more stringent SEACells parameters should be used. 
+
+```{r, warning=FALSE, message=FALSE}
 
 # This process can be resource-intensive. We advise against executing it on a personal computer.
-en.regs <- run_stream(obj = pbmc,
+time1 <- system.time( en.regs <- run_stream(obj = pbmc,
                       qubic.path = "/users/PAS1475/liyang/software/QUBIC2/qubic",
                       peak.assay = "peaks",
                       var.genes = 3000,
@@ -99,7 +113,7 @@ en.regs <- run_stream(obj = pbmc,
                       distance = 5e+05,
                       BlockOverlap = 0.50,
                       Extension = 1.0
-                      )
+                      ) )
 qs::qsave(en.regs, paste0(work.dir, "eRegulons.qsave"))
 names(en.regs[[1]])
 head(en.regs[[1]]$genes)
@@ -108,21 +122,48 @@ head(en.regs[[1]]$links)
 
 ```
 
+```{r}
+message ("The running time of eRegulon prediction is: ", time1["elapsed"])
+```
+
 
 ## eGRN construction
 
 Construct eGRN in each cell type.
 
-```{r}
+In the function `get_cts_en_GRNs`, variabled are defined below:
 
-en.grns <- get_cts_en_GRNs(obj = pbmc, celltype = "predicted.id",
+* `obj`: `Seurat` object composed of both RNA and ATAC assays
+
+* `celltype`: Name of the metadata column indicating cell types
+
+* `en.regs`: List of predicted eRegulons
+
+* `peak.assay`: Name of the ATAC assay
+
+* `rna.dims`: Number of RNA dimensions for multimodal clustering using `Seurat`
+
+* `atac.dims`: Number of ATAC dimensions for multimodal clustering using `Seurat`
+
+* `padj.cutoff`: Threshold of adjusted P-values when mapping eRegulons onto cell types
+
+* `out.dir`: Directory to save the final result and intermediate results
+
+```{r, warning=FALSE, message=FALSE}
+
+time2 <- system.time( en.grns <- get_cts_en_GRNs(obj = pbmc, celltype = "predicted.id",
                            en.regs = en.regs, peak.assay = "peaks",
                            rna.dims = 50, atac.dims = 50,
                            padj.cutoff = 0.05,
-                           out.dir = "./")
+                           out.dir = "./") )
 qs::qsave(en.grns, paste0(work.dir, "eGRNs.qsave"))
 names(en.grns[[1]])
 head(en.grns[[1]]$links)
+
+```
+
+```{r}
+message ("The running time of eGRN construction is: ", time2["elapsed"])
 
 ```
 
@@ -131,11 +172,31 @@ head(en.grns[[1]]$links)
 
 Construct cell-type-specific eRegulons.
 
-```{r}
+In the function `get_cts_en_regs`, variables are introduced as follows:
 
-cts.en.regs <- get_cts_en_regs(obj = pbmc, peak.assay = "peaks", de.genes = NULL,
+* `obj`: `Seurat` object composed of both RNA and ATAC assays
+
+* `peak.assay`: Name of the ATAC assay
+
+* `de.genes`: List of differentially expressed genes (DEGs)
+
+* `cts.en.grns`: Cell-type-specific eGRNs saved in GRanges object, the name of each of which is cell type, and the GRanges object contains metadata columns "gene" and "TF".
+
+* `out.dir`: Directory to save the final result and intermediate results
+
+* `celltype`: Name of the metadata column indicating cell types
+
+* `min.pct`: Cutoff of overlap percentage in calculating DEGs
+
+* `logfc.threshold`: Threshold of log-fold change in predicting DEGs
+
+* `padj.cutoff`: Cutoff of adjusted P-values in identifying DEGs
+
+```{r, warning=FALSE, message=FALSE}
+
+time3 <- system.time( cts.en.regs <- get_cts_en_regs(obj = pbmc, peak.assay = "peaks", de.genes = NULL,
                                cts.en.grns = en.grns, out.dir = "./", celltype = "predicted.id",
-                               min.pct = 0.25, logfc.threshold = 0.25, padj.cutoff = 0.05)
+                               min.pct = 0.25, logfc.threshold = 0.25, padj.cutoff = 0.05) )
 qs::qsave(cts.en.regs, paste0(work.dir, "cell-type-specific-eRegulons.qsave"))
 names(cts.en.regs[[1]])
 head(cts.en.regs[[1]]$genes)
@@ -144,15 +205,26 @@ head(cts.en.regs[[1]]$links)
 
 ```
 
+```{r}
+message ("The running time of cell-type-specific eRegulon discovery is: ", time3["elapsed"])
+
+```
+
 
 ## Evaluation of cell-type-specific eRegulons
 
 Firstly, we performed pathway enrichment analysis for gene lists in cell-type-specific eRegulons against Gene Ontology (GO) or KEGG.
 
-```{r}
+In the function `enrich_genes`, variables are defined as follows:
+
+* `regs`: The list of enhancer regulons (eRegulons) or cell-type-specific eRegulons.
+
+* `dbs`: The list of databases to run enrichment analysis, c("GO", "KEGG") by default.
+
+```{r, warning=FALSE, message=FALSE}
 
 library(pbapply)
-pathways <- enrich_genes(regs = cts.en.regs, dbs = "GO")
+time4 <- system.time( pathways <- enrich_genes(regs = cts.en.regs, dbs = "GO") )
 sig.pathways <- pbapply::pblapply(pathways, function(x) {
   x[x$Adjusted.P.value < 0.05,, drop = FALSE]
 })
@@ -161,26 +233,49 @@ head(sig.pathways[[1]])
 
 ```
 
+```{r}
+message ("The running time of pathway enrichment analysis for eRegulons is: ", time4["elapsed"])
+
+```
+
 
 Then, we intersected the enhancer list of a cell-type-specific eRegulon against H3K27ac ChIP-seq peaks in CD4+ T cells with ENCODE accession code: 
-[ENCFF498QFU] (https://www.encodeproject.org/files/ENCFF498QFU/)
+[ENCFF498QFU](https://www.encodeproject.org/files/ENCFF498QFU/).
 
-```{r}
+In the function `intersect_peaks`, variables are described as follows:
+
+* `x`: The first GRanges object or data.frame.
+
+* `y`: The first GRanges object or data.frame.
+
+```{r, warning=FALSE, message=FALSE}
 
 library(dplyr)
 library(Signac)
 chipseq.df <- read.table(paste0(work.dir, "ENCFF498QFU.bed"), sep = "\t") %>% dplyr::select(V1, V2, V3)
 chipseq.peaks <- StringToGRanges(paste0(chipseq.df[, 1], "-", chipseq.df[, 2], "-", chipseq.df[, 3]))
-permTest.res <- intersect_peaks(x = Signac::StringToGRanges(cts.en.regs[[1]]$enhancers), 
-                                y = chipseq.peaks)
+time5 <- system.time( permTest.res <- intersect_peaks(x = Signac::StringToGRanges(cts.en.regs[[1]]$enhancers), 
+                                y = chipseq.peaks) )
 permTest.res$numOverlaps
 
 ```
 
-Finally, we overlapped the enhancer-gene relations in a cell-type-specific eRegulon against enhancer-target pairs in CD4 TCM cells curated 
-by [scEnhancer] (http://enhanceratlas.net/scenhancer/data/download/interaction/hs/Memory_CD4_T_interaction.txt).
-
 ```{r}
+message ("The running time of evaluating TF-enhancer relations in eRegulons is: ", time5['elapsed'])
+
+```
+
+
+Finally, we overlapped the enhancer-gene relations in a cell-type-specific eRegulon against enhancer-target pairs in CD4 TCM cells curated 
+by [scEnhancer](http://enhanceratlas.net/scenhancer/data/download/interaction/hs/Memory_CD4_T_interaction.txt).
+
+In the function `intersect_enhancer_gene_relations`, variables are introduced as follows:
+
+* `x`: The first GRanges object saving enhancer-gene relations with gene symbols saved in "gene" meta column
+
+* `y`: The second GRanges object saving enhancer-gene relations with gene symbols saved in "gene" meta column
+
+```{r, warning=FALSE, message=FALSE}
 
 # Preprocess the peak-gene interaction pairs in scEnhancer database
 enhGene.df <- read.table(paste0(work.dir, "Memory_CD4_T_interaction.txt"), sep = "\t") %>% dplyr::select(V1, V2)
@@ -191,17 +286,23 @@ head(enhGene.pairs)
 ```
 
 
-```{r}
+```{r, warning=FALSE, message=FALSE}
 
 # Calculate the overlaps between enhancer-gene relations in a cell-type-specific eRegulon
-overlaps <- intersect_enhancer_gene_relations(x = resize(cts.en.regs[[1]]$links, width = 50000, fix = "center"), 
-                                              y = resize(enhGene.pairs, width = 50000, fix = "center") )
+time6 <- system.time(overlaps <- intersect_enhancer_gene_relations(x = resize(cts.en.regs[[1]]$links, width = 50000, fix = "center"), 
+                                              y = resize(enhGene.pairs, width = 50000, fix = "center") ) )
 overlaps
 
 ```
 
-
 ```{r}
+message ("The running time of assessing enhancer-gene relations in eRegulons is: ", time6["elapsed"], "\n\n", 
+         "The total time for the implementation and evaluation of eRegulon/eGRN prediction is: ", 
+         time1["elapsed"] + time2["elapsed"] + time3["elapsed"] + time4["elapsed"] + time5["elapsed"] + time6["elapsed"])
+```
+
+
+```{r, eval=FALSE, echo=FALSE, warning=FALSE, message=FALSE}
 
 # Check session information
 sessionInfo()

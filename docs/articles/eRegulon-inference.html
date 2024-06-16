@@ -351,7 +351,7 @@ display: none;
 <h1 class="title toc-ignore">STREAM: A comprehensive guide to inferring
 enhancer-driven gene regulatory networks from scRNA-seq and scATAC-seq
 data</h1>
-<h4 class="date">Compiled: August 20, 2023</h4>
+<h4 class="date">Compiled: June 16, 2024</h4>
 
 </div>
 
@@ -382,74 +382,11 @@ we merged all cell-type-active eRegulons, leading to an eGRN. Finally,
 by splitting the eGRN into sub-networks according to the regulating TFs,
 we obtained cell-type-specific eRegulons.</p>
 <pre class="r"><code>dyn.load(x = &quot;/users/PAS1475/liyang/libs/hdf5_1.10.6/lib/libhdf5_hl.so.100&quot;)
-# library(easypackages)
-# libs &lt;- c(
-#   &quot;qs&quot;, 
-#   &quot;hdf5r&quot;,
-#   &quot;Seurat&quot;,
-#   &quot;Signac&quot;, 
-#   &quot;pbmcapply&quot;, 
-#   &quot;pbapply&quot;, 
-#   &quot;parallel&quot;,
-#   &quot;EnsDb.Mmusculus.v79&quot;, 
-#   &quot;EnsDb.Hsapiens.v86&quot;,
-#   &quot;dplyr&quot;, 
-#   &quot;ggplot2&quot;, 
-#   &quot;ggpubr&quot;, 
-#   &quot;igraph&quot;, 
-#   &quot;Matrix&quot;
-# )
-# libraries(libs)
-
-library(stream2)</code></pre>
-<pre><code>## Loading required package: Biobase</code></pre>
-<pre><code>## Loading required package: BiocGenerics</code></pre>
-<pre><code>## 
-## Attaching package: &#39;BiocGenerics&#39;</code></pre>
-<pre><code>## The following objects are masked from &#39;package:stats&#39;:
-## 
-##     IQR, mad, sd, var, xtabs</code></pre>
-<pre><code>## The following objects are masked from &#39;package:base&#39;:
-## 
-##     anyDuplicated, aperm, append, as.data.frame, basename, cbind,
-##     colnames, dirname, do.call, duplicated, eval, evalq, Filter, Find,
-##     get, grep, grepl, intersect, is.unsorted, lapply, Map, mapply,
-##     match, mget, order, paste, pmax, pmax.int, pmin, pmin.int,
-##     Position, rank, rbind, Reduce, rownames, sapply, setdiff, sort,
-##     table, tapply, union, unique, unsplit, which.max, which.min</code></pre>
-<pre><code>## Welcome to Bioconductor
-## 
-##     Vignettes contain introductory material; view with
-##     &#39;browseVignettes()&#39;. To cite Bioconductor, see
-##     &#39;citation(&quot;Biobase&quot;)&#39;, and for packages &#39;citation(&quot;pkgname&quot;)&#39;.</code></pre>
-<pre><code>## The legacy packages maptools, rgdal, and rgeos, underpinning the sp package,
-## which was just loaded, will retire in October 2023.
-## Please refer to R-spatial evolution reports for details, especially
-## https://r-spatial.org/r/2023/05/15/evolution4.html.
-## It may be desirable to make the sf package available;
-## package maintainers should consider adding sf to Suggests:.
-## The sp package is now running under evolution status 2
-##      (status 2 uses the sf package in place of rgdal)</code></pre>
-<pre><code>## Warning: replacing previous import &#39;Seurat::Assays&#39; by
-## &#39;SummarizedExperiment::Assays&#39; when loading &#39;stream2&#39;</code></pre>
-<pre><code>## Warning: replacing previous import &#39;SummarizedExperiment::shift&#39; by
-## &#39;data.table::shift&#39; when loading &#39;stream2&#39;</code></pre>
-<pre><code>## Warning: replacing previous import &#39;data.table::last&#39; by &#39;dplyr::last&#39; when
-## loading &#39;stream2&#39;</code></pre>
-<pre><code>## Warning: replacing previous import &#39;data.table::first&#39; by &#39;dplyr::first&#39; when
-## loading &#39;stream2&#39;</code></pre>
-<pre><code>## Warning: replacing previous import &#39;data.table::between&#39; by &#39;dplyr::between&#39;
-## when loading &#39;stream2&#39;</code></pre>
-<pre><code>## Warning: replacing previous import &#39;dplyr::union&#39; by &#39;igraph::union&#39; when
-## loading &#39;stream2&#39;</code></pre>
-<pre><code>## Warning: replacing previous import &#39;dplyr::as_data_frame&#39; by
-## &#39;igraph::as_data_frame&#39; when loading &#39;stream2&#39;</code></pre>
-<pre><code>## Warning: replacing previous import &#39;dplyr::groups&#39; by &#39;igraph::groups&#39; when
-## loading &#39;stream2&#39;</code></pre>
+suppressWarnings(invisible(library(stream2) ) )</code></pre>
 <div id="data-loading" class="section level2">
 <h2>Data loading</h2>
-<p>Load a Seurat object containing jointly profiled scRNA-seq and
-scATAC-seq assays from human PBMCs.</p>
+<p>Load a <code>Seurat</code> object containing jointly profiled
+scRNA-seq and scATAC-seq assays from human PBMCs.</p>
 <pre class="r"><code>pbmc &lt;- qs::qread(paste0(work.dir, &quot;tutorial_pbmc.qsave&quot;))
 pbmc</code></pre>
 <pre><code>## An object of class Seurat 
@@ -461,8 +398,44 @@ pbmc</code></pre>
 <div id="eregulon-inference" class="section level2">
 <h2>eRegulon inference</h2>
 <p>Run STREAM on the Seurat object with default parameters.</p>
+<p>In the function <code>run_stream</code>, variable annotations are
+presented as follows:</p>
+<ul>
+<li><p><code>obj</code>: <code>Seurat</code> object composed of both RNA
+and ATAC assays</p></li>
+<li><p><code>qubic.path</code>: File path of the <code>QUBIC2</code>
+biclustering program</p></li>
+<li><p><code>peak.assay</code>: Name of the ATAC assay</p></li>
+<li><p><code>var.genes</code>: Number of highly variable genes for LTMG
+modeling</p></li>
+<li><p><code>top.peaks</code>: Number of top-ranked peaks to build
+heterogeneous graph</p></li>
+<li><p><code>min.cells</code>: Minimum number of cells for quality
+control</p></li>
+<li><p><code>org</code>: Organism assembly version</p></li>
+<li><p><code>c.cutoff</code>: Cutoff of expression consistency among
+genes in the core part of hybrid biclusters</p></li>
+<li><p><code>distance</code>: Size of window to connect co-accessible
+peaks</p></li>
+<li><p><code>BlockOverlap</code>: Threshold of overlap between prior
+identified hybrid biclusters and the current seed</p></li>
+<li><p><code>Extension</code>: Cutoff of expression consistency among
+genes in the dual part of hybrid biclusters</p></li>
+</ul>
+<p>When it comes to jointly profiled RNA+ATAC data via different
+techniques, we suggest different strategies. For datasets with low
+scRNA-seq depth (e.g., <a href="https://www.sciencedirect.com/science/article/pii/S0092867420312538">SHARE-seq</a>),
+we recommend imputation using mainstream approaches like <a href="https://www.cell.com/cell/pdf/S0092-8674(18)30724-4.pdf">MAGIC</a>,
+<a href="https://www.nature.com/articles/s41592-018-0033-z">SAVER</a>,
+and <a href="https://www.nature.com/articles/s41467-018-03405-7">scImpute</a>.
+For datasets with low coverage in both modalities (e.g., <a href="https://www.nature.com/articles/s41587-019-0290-0">SNARE-seq</a>
+and <a href="https://www.nature.com/articles/s41594-019-0323-x">PAIRED-seq</a>),
+we suggest using <a href="https://www.nature.com/articles/s41587-023-01716-9">SEACells</a>
+to build metacells by pooling similar cells. For PAIRED-seq, which has
+even lower coverage than SNARE-seq, more stringent SEACells parameters
+should be used.</p>
 <pre class="r"><code># This process can be resource-intensive. We advise against executing it on a personal computer.
-en.regs &lt;- run_stream(obj = pbmc,
+time1 &lt;- system.time( en.regs &lt;- run_stream(obj = pbmc,
                       qubic.path = &quot;/users/PAS1475/liyang/software/QUBIC2/qubic&quot;,
                       peak.assay = &quot;peaks&quot;,
                       var.genes = 3000,
@@ -473,90 +446,9 @@ en.regs &lt;- run_stream(obj = pbmc,
                       distance = 5e+05,
                       BlockOverlap = 0.50,
                       Extension = 1.0
-                      )</code></pre>
-<pre><code>## Began running STREAM2 at time: 
-## 2023-08-20 14:34:55</code></pre>
-<pre><code>## Filtered out features not a gene symbol or belonging to non-standard chromosomes,
-## leading to 1098 genes and 3991 enhancers.</code></pre>
-<pre><code>## Saved the Seurat object after filtering to file: ./Obj_filtered.qsave.</code></pre>
-<pre><code>## Loading required package: BSgenome.Hsapiens.UCSC.hg38</code></pre>
-<pre><code>## Loading required package: GenomeInfoDb</code></pre>
-<pre><code>## Loading required package: S4Vectors</code></pre>
-<pre><code>## Loading required package: stats4</code></pre>
-<pre><code>## 
-## Attaching package: &#39;S4Vectors&#39;</code></pre>
-<pre><code>## The following objects are masked from &#39;package:base&#39;:
-## 
-##     expand.grid, I, unname</code></pre>
-<pre><code>## Loading required package: IRanges</code></pre>
-<pre><code>## Loading required package: BSgenome</code></pre>
-<pre><code>## Loading required package: GenomicRanges</code></pre>
-<pre><code>## Loading required package: Biostrings</code></pre>
-<pre><code>## Loading required package: XVector</code></pre>
-<pre><code>## 
-## Attaching package: &#39;Biostrings&#39;</code></pre>
-<pre><code>## The following object is masked from &#39;package:base&#39;:
-## 
-##     strsplit</code></pre>
-<pre><code>## Loading required package: rtracklayer</code></pre>
-<pre><code>## Loaded full genome sequences for hg38</code></pre>
-<pre><code>## Computed the GC content, region lengths, and dinucleotide base frequencies for regions in the peaks assay and add them to the feature metadata.</code></pre>
-<pre><code>## Wrote potential enhancer-gene pairs to file ./Potential_enhancer_gene_pairs_within_1mb.qsave</code></pre>
-<pre><code>## Removed the cells with zero count of RNA or ATAC, 
-## leading to 1000 cells.</code></pre>
-<pre><code>## Filtered the enhancers that are beyond 500 kb from any genes in the Seurat object.
-## 3991 enhancers and 1098 genes were retained.</code></pre>
-<pre><code>## Performing TF-IDF normalization</code></pre>
-<pre><code>## Warning in RunTFIDF.default(object = GetAssayData(object = object, slot =
-## &quot;counts&quot;), : Some features contain 0 total counts</code></pre>
-<pre><code>## Saved the Seurat object composed of 950 genes (950 variable genes) and 3861 enhancers (3861 top-ranked enhancers) to file: ./Obj_var_genes_top_enhs.qsave.</code></pre>
-<pre><code>## Loaded TF binding sites from JASPAR 2022.</code></pre>
-<pre><code>## Finished identified 29743 TF-enhancer pairs.</code></pre>
-<pre><code>## Identified 201 TFs binding 3423 enhancers,
-## which were saved to file: ./TF_binding_sites_on_enhs.qsave.</code></pre>
-<pre><code>## 
-## Began LTMG modeling ===================</code></pre>
-<pre><code>## </code></pre>
-<pre><code>## </code></pre>
-<pre><code>## Registered S3 method overwritten by &#39;gamlss&#39;:
-##   method   from
-##   print.ri bit</code></pre>
-<pre><code>## </code></pre>
-<pre><code>## Registered S3 methods overwritten by &#39;treeio&#39;:
-##   method              from    
-##   MRCA.phylo          tidytree
-##   MRCA.treedata       tidytree
-##   Nnode.treedata      tidytree
-##   Ntip.treedata       tidytree
-##   ancestor.phylo      tidytree
-##   ancestor.treedata   tidytree
-##   child.phylo         tidytree
-##   child.treedata      tidytree
-##   full_join.phylo     tidytree
-##   full_join.treedata  tidytree
-##   groupClade.phylo    tidytree
-##   groupClade.treedata tidytree
-##   groupOTU.phylo      tidytree
-##   groupOTU.treedata   tidytree
-##   is.rooted.treedata  tidytree
-##   nodeid.phylo        tidytree
-##   nodeid.treedata     tidytree
-##   nodelab.phylo       tidytree
-##   nodelab.treedata    tidytree
-##   offspring.phylo     tidytree
-##   offspring.treedata  tidytree
-##   parent.phylo        tidytree
-##   parent.treedata     tidytree
-##   root.treedata       tidytree
-##   rootnode.phylo      tidytree
-##   sibling.phylo       tidytree</code></pre>
-<pre><code>## Creating IRISCEM object. 
-## The original input file contains 1000 cells and 950 genes 
-## Removed 0 genes that total expression value is equal or less than 0
-## Removed 0 cells that number of expressed gene is equal or less than 0</code></pre>
-<pre><code>## number of iterations= 236</code></pre>
-<pre><code>## using all genes.</code></pre>
-<pre><code>## Progress:0%
+                      ) )</code></pre>
+<pre><code>## number of iterations= 236 
+## Progress:0%
 ## Progress:10%
 ## Progress:20%
 ## Progress:30%
@@ -566,9 +458,8 @@ en.regs &lt;- run_stream(obj = pbmc,
 ## Progress:70%
 ## Progress:80%
 ## Progress:90%
-## Progress:100%</code></pre>
-<pre><code>## End LTMG modeling ===================</code></pre>
-<pre><code>## 
+## Progress:100%
+## 
   |                                                                            
   |                                                                      |   0%
   |                                                                            
@@ -870,71 +761,10 @@ en.regs &lt;- run_stream(obj = pbmc,
   |                                                                            
   |======================================================================|  99%
   |                                                                            
-  |======================================================================| 100%</code></pre>
-<pre><code>## Finished LTMG modeling for 950 genes across 1000 cells.
-## There are 2 transcriptional regulatory states (TRSs) identified.</code></pre>
-<pre><code>## 
-## Began QUBIC biclustering ===================</code></pre>
-<pre><code>## End QUBIC biclustering ===================</code></pre>
-<pre><code>## Read co-conditioned cells (n = 976) in 1 biclusters</code></pre>
-<pre><code>## Read co-regulated genes (n = 29) in 1 biclusters</code></pre>
-<pre><code>## Testing 801 genes and 2308 peaks</code></pre>
-<pre><code>## Registered S3 method overwritten by &#39;SeuratDisk&#39;:
-##   method            from  
-##   as.sparse.H5Group Seurat</code></pre>
-<pre><code>## &#39;as(&lt;dgCMatrix&gt;, &quot;dgTMatrix&quot;)&#39; is deprecated.
-## Use &#39;as(., &quot;TsparseMatrix&quot;)&#39; instead.
-## See help(&quot;Deprecated&quot;) and help(&quot;Matrix-deprecated&quot;).</code></pre>
-<pre><code>## Built 2856 enhancer-gene relations from the total dataset.
-## Saved Signac enhancer-gene links to file: ./Signac_links.qsave</code></pre>
-<pre><code>## Loading required package: monocle3</code></pre>
-<pre><code>## Loading required package: SingleCellExperiment</code></pre>
-<pre><code>## Loading required package: SummarizedExperiment</code></pre>
-<pre><code>## Loading required package: MatrixGenerics</code></pre>
-<pre><code>## Loading required package: matrixStats</code></pre>
-<pre><code>## 
-## Attaching package: &#39;matrixStats&#39;</code></pre>
-<pre><code>## The following objects are masked from &#39;package:Biobase&#39;:
-## 
-##     anyMissing, rowMedians</code></pre>
-<pre><code>## 
-## Attaching package: &#39;MatrixGenerics&#39;</code></pre>
-<pre><code>## The following objects are masked from &#39;package:matrixStats&#39;:
-## 
-##     colAlls, colAnyNAs, colAnys, colAvgsPerRowSet, colCollapse,
-##     colCounts, colCummaxs, colCummins, colCumprods, colCumsums,
-##     colDiffs, colIQRDiffs, colIQRs, colLogSumExps, colMadDiffs,
-##     colMads, colMaxs, colMeans2, colMedians, colMins, colOrderStats,
-##     colProds, colQuantiles, colRanges, colRanks, colSdDiffs, colSds,
-##     colSums2, colTabulates, colVarDiffs, colVars, colWeightedMads,
-##     colWeightedMeans, colWeightedMedians, colWeightedSds,
-##     colWeightedVars, rowAlls, rowAnyNAs, rowAnys, rowAvgsPerColSet,
-##     rowCollapse, rowCounts, rowCummaxs, rowCummins, rowCumprods,
-##     rowCumsums, rowDiffs, rowIQRDiffs, rowIQRs, rowLogSumExps,
-##     rowMadDiffs, rowMads, rowMaxs, rowMeans2, rowMedians, rowMins,
-##     rowOrderStats, rowProds, rowQuantiles, rowRanges, rowRanks,
-##     rowSdDiffs, rowSds, rowSums2, rowTabulates, rowVarDiffs, rowVars,
-##     rowWeightedMads, rowWeightedMeans, rowWeightedMedians,
-##     rowWeightedSds, rowWeightedVars</code></pre>
-<pre><code>## The following object is masked from &#39;package:Biobase&#39;:
-## 
-##     rowMedians</code></pre>
-<pre><code>## 
-## Attaching package: &#39;monocle3&#39;</code></pre>
-<pre><code>## The following objects are masked from &#39;package:Biobase&#39;:
-## 
-##     exprs, fData, fData&lt;-, pData, pData&lt;-</code></pre>
-<pre><code>## Overlap QC metrics:
-## Cells per bin: 50
-## Maximum shared cells bin-bin: 44
-## Mean shared cells bin-bin: 2.74111218257795
-## Median shared cells bin-bin: 0</code></pre>
-<pre><code>## [1] &quot;Starting Cicero&quot;
-## [1] &quot;Calculating distance_parameter value&quot;</code></pre>
-<pre><code>## Warning in estimate_distance_parameter(cds, window = window, maxit = 100, :
-## Could not calculate sample_num distance_parameters (26 were calculated) - see
-## documentation details</code></pre>
-<pre><code>## [1] &quot;Running models&quot;
+  |======================================================================| 100%
+## [1] &quot;Starting Cicero&quot;
+## [1] &quot;Calculating distance_parameter value&quot;
+## [1] &quot;Running models&quot;
 ## [1] &quot;Assembling connections&quot;
 ## [1] &quot;Successful cicero models:  1469&quot;
 ## [1] &quot;Other models: &quot;
@@ -942,19 +772,8 @@ en.regs &lt;- run_stream(obj = pbmc,
 ## Zero or one element in range 
 ##                        12116 
 ## [1] &quot;Models with errors:  0&quot;
-## [1] &quot;Done&quot;</code></pre>
-<pre><code>## Built 14914 co-accessible enhancer-enhancer links.
-## Saved the Cicero enhancer-enhancer links to file: ./Cicero_links.qsave</code></pre>
-<pre><code>## List containing 1 Seurat objects were saved to file: ./Obj_list.qsave.</code></pre>
-<pre><code>## Constructed 1 heterogeneous graphs,
-## which were saved to file: ./Graph_list.qsave.</code></pre>
-<pre><code>## Saved the TF-target pairs to file: ./TF_target_pairs.qsave.</code></pre>
-<pre><code>## Identified 12 enhancer-gene relations using SFP model.</code></pre>
-<pre><code>## 60 seeds are identified for hybrid biclustering,
-## which were saved to file: ./Seeds.qsave.</code></pre>
-<pre><code>## Biclustering based on Tier-1 TF-enhancer binding annotations ...</code></pre>
-<pre><code>## Hybrid biclustering on the transcriptome and chromatin accessibility matrices ...</code></pre>
-<pre><code>## 
+## [1] &quot;Done&quot;
+## 
   |                                                        
   |                                                  |   0%
   |                                                        
@@ -1077,10 +896,6 @@ en.regs &lt;- run_stream(obj = pbmc,
   |================================================= |  98%
   |                                                        
   |==================================================| 100%</code></pre>
-<pre><code>## Identified 9 hybrid biclusters (HBCs),
-## which were saved to file: ./HBCs.qsave.
-## HBCs contain 20-98 genes, 17-76 enhancers, 466-822 cells, and 9 TFs.</code></pre>
-<pre><code>## 9 enhancer regulons (eRegulons) were discovered</code></pre>
 <pre class="r"><code>qs::qsave(en.regs, paste0(work.dir, &quot;eRegulons.qsave&quot;))
 names(en.regs[[1]])</code></pre>
 <pre><code>##  [1] &quot;terminal&quot;   &quot;Tier&quot;       &quot;TF&quot;         &quot;genes&quot;      &quot;peaks&quot;     
@@ -1104,20 +919,36 @@ names(en.regs[[1]])</code></pre>
 ##   [6]     chr1 93179195-93181524      * |        EVI5
 ##   -------
 ##   seqinfo: 19 sequences from an unspecified genome; no seqlengths</code></pre>
+<pre class="r"><code>message (&quot;The running time of eRegulon prediction is: &quot;, time1[&quot;elapsed&quot;])</code></pre>
+<pre><code>## The running time of eRegulon prediction is: 564.852</code></pre>
 </div>
 <div id="egrn-construction" class="section level2">
 <h2>eGRN construction</h2>
 <p>Construct eGRN in each cell type.</p>
-<pre class="r"><code>en.grns &lt;- get_cts_en_GRNs(obj = pbmc, celltype = &quot;predicted.id&quot;,
+<p>In the function <code>get_cts_en_GRNs</code>, variabled are defined
+below:</p>
+<ul>
+<li><p><code>obj</code>: <code>Seurat</code> object composed of both RNA
+and ATAC assays</p></li>
+<li><p><code>celltype</code>: Name of the metadata column indicating
+cell types</p></li>
+<li><p><code>en.regs</code>: List of predicted eRegulons</p></li>
+<li><p><code>peak.assay</code>: Name of the ATAC assay</p></li>
+<li><p><code>rna.dims</code>: Number of RNA dimensions for multimodal
+clustering using <code>Seurat</code></p></li>
+<li><p><code>atac.dims</code>: Number of ATAC dimensions for multimodal
+clustering using <code>Seurat</code></p></li>
+<li><p><code>padj.cutoff</code>: Threshold of adjusted P-values when
+mapping eRegulons onto cell types</p></li>
+<li><p><code>out.dir</code>: Directory to save the final result and
+intermediate results</p></li>
+</ul>
+<pre class="r"><code>time2 &lt;- system.time( en.grns &lt;- get_cts_en_GRNs(obj = pbmc, celltype = &quot;predicted.id&quot;,
                            en.regs = en.regs, peak.assay = &quot;peaks&quot;,
                            rna.dims = 50, atac.dims = 50,
                            padj.cutoff = 0.05,
-                           out.dir = &quot;./&quot;)</code></pre>
-<pre><code>## The Seurat object contains 1101 genes, 3991 enhancers, and 1000 cells.</code></pre>
-<pre><code>## Finished hyper-geometric test of 9 eRegulons against 3 cell types, obtaining p-values ranging from 3.48064426106208e-09 to 0.999997707597157</code></pre>
-<pre><code>## Finished Bonferroni correction and obtained adjusted p-values ranging from 9.39773950486761e-08 to 1</code></pre>
-<pre><code>## Identified enhancer gene regulatory networks (eGRNs) for cell types (n = 1) : CD4 TCM</code></pre>
-<pre class="r"><code>qs::qsave(en.grns, paste0(work.dir, &quot;eGRNs.qsave&quot;))
+                           out.dir = &quot;./&quot;) )
+qs::qsave(en.grns, paste0(work.dir, &quot;eGRNs.qsave&quot;))
 names(en.grns[[1]])</code></pre>
 <pre><code>## [1] &quot;links&quot;     &quot;cell.type&quot; &quot;cells&quot;</code></pre>
 <pre class="r"><code>head(en.grns[[1]]$links)</code></pre>
@@ -1132,27 +963,38 @@ names(en.grns[[1]])</code></pre>
 ##   [6]     chr1 93179195-93181524      * |        EVI5       TCF12
 ##   -------
 ##   seqinfo: 21 sequences from an unspecified genome; no seqlengths</code></pre>
+<pre class="r"><code>message (&quot;The running time of eGRN construction is: &quot;, time2[&quot;elapsed&quot;])</code></pre>
+<pre><code>## The running time of eGRN construction is: 0.923000000000002</code></pre>
 </div>
 <div id="cell-type-specific-eregulon-prediction" class="section level2">
 <h2>Cell-type-specific eRegulon prediction</h2>
 <p>Construct cell-type-specific eRegulons.</p>
-<pre class="r"><code>cts.en.regs &lt;- get_cts_en_regs(obj = pbmc, peak.assay = &quot;peaks&quot;, de.genes = NULL,
+<p>In the function <code>get_cts_en_regs</code>, variables are
+introduced as follows:</p>
+<ul>
+<li><p><code>obj</code>: <code>Seurat</code> object composed of both RNA
+and ATAC assays</p></li>
+<li><p><code>peak.assay</code>: Name of the ATAC assay</p></li>
+<li><p><code>de.genes</code>: List of differentially expressed genes
+(DEGs)</p></li>
+<li><p><code>cts.en.grns</code>: Cell-type-specific eGRNs saved in
+GRanges object, the name of each of which is cell type, and the GRanges
+object contains metadata columns “gene” and “TF”.</p></li>
+<li><p><code>out.dir</code>: Directory to save the final result and
+intermediate results</p></li>
+<li><p><code>celltype</code>: Name of the metadata column indicating
+cell types</p></li>
+<li><p><code>min.pct</code>: Cutoff of overlap percentage in calculating
+DEGs</p></li>
+<li><p><code>logfc.threshold</code>: Threshold of log-fold change in
+predicting DEGs</p></li>
+<li><p><code>padj.cutoff</code>: Cutoff of adjusted P-values in
+identifying DEGs</p></li>
+</ul>
+<pre class="r"><code>time3 &lt;- system.time( cts.en.regs &lt;- get_cts_en_regs(obj = pbmc, peak.assay = &quot;peaks&quot;, de.genes = NULL,
                                cts.en.grns = en.grns, out.dir = &quot;./&quot;, celltype = &quot;predicted.id&quot;,
-                               min.pct = 0.25, logfc.threshold = 0.25, padj.cutoff = 0.05)</code></pre>
-<pre><code>## The Seurat object contains 1101 genes, 3991 enhancers, and 1000 cells.</code></pre>
-<pre><code>## Need to filter genes based on differential expression.
-## Predicting differentially expressed genes (DEGs) ...</code></pre>
-<pre><code>## Warning in supportsMulticoreAndRStudio(...): [ONE-TIME WARNING] Forked
-## processing (&#39;multicore&#39;) is not supported when running R from RStudio because
-## it is considered unstable. For more details, how to control forked processing
-## or not, and how to silence this warning in future R sessions, see
-## ?parallelly::supportsMulticore</code></pre>
-<pre><code>## Calculating cluster CD4 TCM</code></pre>
-<pre><code>## Calculating cluster CD8 Naive</code></pre>
-<pre><code>## Calculating cluster CD4 Naive</code></pre>
-<pre><code>## We have 166 differentially expressed genes (DEGs).</code></pre>
-<pre><code>## Identified 5 cell-type-specific eRegulons.</code></pre>
-<pre class="r"><code>qs::qsave(cts.en.regs, paste0(work.dir, &quot;cell-type-specific-eRegulons.qsave&quot;))
+                               min.pct = 0.25, logfc.threshold = 0.25, padj.cutoff = 0.05) )
+qs::qsave(cts.en.regs, paste0(work.dir, &quot;cell-type-specific-eRegulons.qsave&quot;))
 names(cts.en.regs[[1]])</code></pre>
 <pre><code>## [1] &quot;TF&quot;        &quot;celltype&quot;  &quot;cells&quot;     &quot;genes&quot;     &quot;enhancers&quot; &quot;links&quot;</code></pre>
 <pre class="r"><code>head(cts.en.regs[[1]]$genes)</code></pre>
@@ -1174,24 +1016,23 @@ names(cts.en.regs[[1]])</code></pre>
 ##   [6]     chr6 137707572-137708859      * |      TNFAIP3       CEBPD
 ##   -------
 ##   seqinfo: 21 sequences from an unspecified genome; no seqlengths</code></pre>
+<pre class="r"><code>message (&quot;The running time of cell-type-specific eRegulon discovery is: &quot;, time3[&quot;elapsed&quot;])</code></pre>
+<pre><code>## The running time of cell-type-specific eRegulon discovery is: 0.593999999999937</code></pre>
 </div>
 <div id="evaluation-of-cell-type-specific-eregulons" class="section level2">
 <h2>Evaluation of cell-type-specific eRegulons</h2>
 <p>Firstly, we performed pathway enrichment analysis for gene lists in
 cell-type-specific eRegulons against Gene Ontology (GO) or KEGG.</p>
+<p>In the function <code>enrich_genes</code>, variables are defined as
+follows:</p>
+<ul>
+<li><p><code>regs</code>: The list of enhancer regulons (eRegulons) or
+cell-type-specific eRegulons.</p></li>
+<li><p><code>dbs</code>: The list of databases to run enrichment
+analysis, c(“GO”, “KEGG”) by default.</p></li>
+</ul>
 <pre class="r"><code>library(pbapply)
-pathways &lt;- enrich_genes(regs = cts.en.regs, dbs = &quot;GO&quot;)</code></pre>
-<pre><code>## Loading GO databases ...</code></pre>
-<pre><code>## Running enrichment analyses for 5 gene lists ...</code></pre>
-<pre><code>## Loading required package: enrichR</code></pre>
-<pre><code>## Welcome to enrichR
-## Checking connection ...</code></pre>
-<pre><code>## Enrichr ... Connection is Live!
-## FlyEnrichr ... Connection is Live!
-## WormEnrichr ... Connection is Live!
-## YeastEnrichr ... Connection is Live!
-## FishEnrichr ... Connection is Live!
-## OxEnrichr ... Connection is Live!</code></pre>
+time4 &lt;- system.time( pathways &lt;- enrich_genes(regs = cts.en.regs, dbs = &quot;GO&quot;) )</code></pre>
 <pre><code>## Uploading data to Enrichr... Done.
 ##   Querying GO_Molecular_Function_2018... Done.
 ##   Querying GO_Cellular_Component_2018... Done.
@@ -1217,8 +1058,6 @@ pathways &lt;- enrich_genes(regs = cts.en.regs, dbs = &quot;GO&quot;)</code></pr
 ##   Querying GO_Cellular_Component_2018... Done.
 ##   Querying GO_Biological_Process_2018... Done.
 ## Parsing results... Done.</code></pre>
-<pre><code>## Merging enrichment analyses results ...
-## There are 217, 109, 998 terms/pathways for GO_Molecular_Function_2018, GO_Cellular_Component_2018, GO_Biological_Process_2018.</code></pre>
 <pre class="r"><code>sig.pathways &lt;- pbapply::pblapply(pathways, function(x) {
   x[x$Adjusted.P.value &lt; 0.05,, drop = FALSE]
 })
@@ -1245,58 +1084,24 @@ head(sig.pathways[[1]])</code></pre>
 ## 4 TNFAIP3
 ## 5    ACTB
 ## 6  EEF1A1</code></pre>
+<pre class="r"><code>message (&quot;The running time of pathway enrichment analysis for eRegulons is: &quot;, time4[&quot;elapsed&quot;])</code></pre>
+<pre><code>## The running time of pathway enrichment analysis for eRegulons is: 38.891</code></pre>
 <p>Then, we intersected the enhancer list of a cell-type-specific
 eRegulon against H3K27ac ChIP-seq peaks in CD4+ T cells with ENCODE
-accession code: [ENCFF498QFU] (<a href="https://www.encodeproject.org/files/ENCFF498QFU/" class="uri">https://www.encodeproject.org/files/ENCFF498QFU/</a>)</p>
-<pre class="r"><code>library(dplyr)</code></pre>
-<pre><code>## 
-## Attaching package: &#39;dplyr&#39;</code></pre>
-<pre><code>## The following object is masked from &#39;package:matrixStats&#39;:
-## 
-##     count</code></pre>
-<pre><code>## The following objects are masked from &#39;package:Biostrings&#39;:
-## 
-##     collapse, intersect, setdiff, setequal, union</code></pre>
-<pre><code>## The following object is masked from &#39;package:XVector&#39;:
-## 
-##     slice</code></pre>
-<pre><code>## The following objects are masked from &#39;package:GenomicRanges&#39;:
-## 
-##     intersect, setdiff, union</code></pre>
-<pre><code>## The following object is masked from &#39;package:GenomeInfoDb&#39;:
-## 
-##     intersect</code></pre>
-<pre><code>## The following objects are masked from &#39;package:IRanges&#39;:
-## 
-##     collapse, desc, intersect, setdiff, slice, union</code></pre>
-<pre><code>## The following objects are masked from &#39;package:S4Vectors&#39;:
-## 
-##     first, intersect, rename, setdiff, setequal, union</code></pre>
-<pre><code>## The following object is masked from &#39;package:Biobase&#39;:
-## 
-##     combine</code></pre>
-<pre><code>## The following objects are masked from &#39;package:BiocGenerics&#39;:
-## 
-##     combine, intersect, setdiff, union</code></pre>
-<pre><code>## The following objects are masked from &#39;package:stats&#39;:
-## 
-##     filter, lag</code></pre>
-<pre><code>## The following objects are masked from &#39;package:base&#39;:
-## 
-##     intersect, setdiff, setequal, union</code></pre>
-<pre class="r"><code>library(Signac)
+accession code: <a href="https://www.encodeproject.org/files/ENCFF498QFU/">ENCFF498QFU</a>.</p>
+<p>In the function <code>intersect_peaks</code>, variables are described
+as follows:</p>
+<ul>
+<li><p><code>x</code>: The first GRanges object or data.frame.</p></li>
+<li><p><code>y</code>: The first GRanges object or data.frame.</p></li>
+</ul>
+<pre class="r"><code>library(dplyr)
+library(Signac)
 chipseq.df &lt;- read.table(paste0(work.dir, &quot;ENCFF498QFU.bed&quot;), sep = &quot;\t&quot;) %&gt;% dplyr::select(V1, V2, V3)
 chipseq.peaks &lt;- StringToGRanges(paste0(chipseq.df[, 1], &quot;-&quot;, chipseq.df[, 2], &quot;-&quot;, chipseq.df[, 3]))
-permTest.res &lt;- intersect_peaks(x = Signac::StringToGRanges(cts.en.regs[[1]]$enhancers), 
-                                y = chipseq.peaks)</code></pre>
-<pre><code>## Perform significance test between two GRange objects composed of 10 and 40355 peaks.</code></pre>
-<pre><code>## 
-## Attaching package: &#39;BSgenome.Hsapiens.UCSC.hg19&#39;</code></pre>
-<pre><code>## The following object is masked from &#39;package:BSgenome.Hsapiens.UCSC.hg38&#39;:
-## 
-##     Hsapiens</code></pre>
-<pre><code>## The masked version of &#39;hg19&#39; is not installed. Using the unmasked version. This means that no automatic masking will be available.</code></pre>
-<pre class="r"><code>permTest.res$numOverlaps</code></pre>
+time5 &lt;- system.time( permTest.res &lt;- intersect_peaks(x = Signac::StringToGRanges(cts.en.regs[[1]]$enhancers), 
+                                y = chipseq.peaks) )
+permTest.res$numOverlaps</code></pre>
 <pre><code>## P-value: 0.0099009900990099
 ## Z-score: 14.9248
 ## Number of iterations: 100
@@ -1304,9 +1109,19 @@ permTest.res &lt;- intersect_peaks(x = Signac::StringToGRanges(cts.en.regs[[1]]$
 ## Evaluation of the original region set: 11
 ## Evaluation function: numOverlaps
 ## Randomization function: randomizeRegions</code></pre>
+<pre class="r"><code>message (&quot;The running time of evaluating TF-enhancer relations in eRegulons is: &quot;, time5[&#39;elapsed&#39;])</code></pre>
+<pre><code>## The running time of evaluating TF-enhancer relations in eRegulons is: 6.95100000000002</code></pre>
 <p>Finally, we overlapped the enhancer-gene relations in a
 cell-type-specific eRegulon against enhancer-target pairs in CD4 TCM
-cells curated by [scEnhancer] (<a href="http://enhanceratlas.net/scenhancer/data/download/interaction/hs/Memory_CD4_T_interaction.txt" class="uri">http://enhanceratlas.net/scenhancer/data/download/interaction/hs/Memory_CD4_T_interaction.txt</a>).</p>
+cells curated by <a href="http://enhanceratlas.net/scenhancer/data/download/interaction/hs/Memory_CD4_T_interaction.txt">scEnhancer</a>.</p>
+<p>In the function <code>intersect_enhancer_gene_relations</code>,
+variables are introduced as follows:</p>
+<ul>
+<li><p><code>x</code>: The first GRanges object saving enhancer-gene
+relations with gene symbols saved in “gene” meta column</p></li>
+<li><p><code>y</code>: The second GRanges object saving enhancer-gene
+relations with gene symbols saved in “gene” meta column</p></li>
+</ul>
 <pre class="r"><code># Preprocess the peak-gene interaction pairs in scEnhancer database
 enhGene.df &lt;- read.table(paste0(work.dir, &quot;Memory_CD4_T_interaction.txt&quot;), sep = &quot;\t&quot;) %&gt;% dplyr::select(V1, V2)
 enhGene.pairs &lt;- Signac::StringToGRanges(strsplit(enhGene.df$V1, split = &quot;\\|&quot;) %&gt;% sapply(., &quot;[[&quot;, 1), sep = c(&quot;:&quot;, &quot;-&quot;))
@@ -1324,170 +1139,22 @@ head(enhGene.pairs)</code></pre>
 ##   -------
 ##   seqinfo: 23 sequences from an unspecified genome; no seqlengths</code></pre>
 <pre class="r"><code># Calculate the overlaps between enhancer-gene relations in a cell-type-specific eRegulon
-overlaps &lt;- intersect_enhancer_gene_relations(x = resize(cts.en.regs[[1]]$links, width = 50000, fix = &quot;center&quot;), 
-                                              y = resize(enhGene.pairs, width = 50000, fix = &quot;center&quot;) )
+time6 &lt;- system.time(overlaps &lt;- intersect_enhancer_gene_relations(x = resize(cts.en.regs[[1]]$links, width = 50000, fix = &quot;center&quot;), 
+                                              y = resize(enhGene.pairs, width = 50000, fix = &quot;center&quot;) ) )
 overlaps</code></pre>
 <pre><code>##                    x.peak                 y.peak  gene
 ## 1: chr6-16736281-16786280 chr6-16686955-16736954 ATXN1
 ## 2: chr6-16736281-16786280 chr6-16744524-16794523 ATXN1
 ## 3: chr6-16736281-16786280 chr6-16746364-16796363 ATXN1
 ## 4:   chr7-5372117-5422116   chr7-5412511-5462510  ACTB</code></pre>
+<pre class="r"><code>message (&quot;The running time of assessing enhancer-gene relations in eRegulons is: &quot;, time6[&quot;elapsed&quot;], &quot;\n\n&quot;, 
+         &quot;The total time for the implementation and evaluation of eRegulon/eGRN prediction is: &quot;, 
+         time1[&quot;elapsed&quot;] + time2[&quot;elapsed&quot;] + time3[&quot;elapsed&quot;] + time4[&quot;elapsed&quot;] + time5[&quot;elapsed&quot;] + time6[&quot;elapsed&quot;])</code></pre>
+<pre><code>## The running time of assessing enhancer-gene relations in eRegulons is: 0.0520000000000209
+## 
+## The total time for the implementation and evaluation of eRegulon/eGRN prediction is: 612.263</code></pre>
 <pre class="r"><code># Check session information
 sessionInfo()</code></pre>
-<pre><code>## R version 4.2.1 (2022-06-23)
-## Platform: x86_64-pc-linux-gnu (64-bit)
-## Running under: Red Hat Enterprise Linux
-## 
-## Matrix products: default
-## BLAS/LAPACK: /opt/intel/2021.3/mkl/2021.3.0/lib/intel64/libmkl_gf_lp64.so.1
-## 
-## locale:
-##  [1] LC_CTYPE=en_US.UTF-8       LC_NUMERIC=C              
-##  [3] LC_TIME=en_US.UTF-8        LC_COLLATE=en_US.UTF-8    
-##  [5] LC_MONETARY=en_US.UTF-8    LC_MESSAGES=en_US.UTF-8   
-##  [7] LC_PAPER=en_US.UTF-8       LC_NAME=C                 
-##  [9] LC_ADDRESS=C               LC_TELEPHONE=C            
-## [11] LC_MEASUREMENT=en_US.UTF-8 LC_IDENTIFICATION=C       
-## 
-## attached base packages:
-## [1] stats4    stats     graphics  grDevices utils     datasets  methods  
-## [8] base     
-## 
-## other attached packages:
-##  [1] BSgenome.Hsapiens.UCSC.hg19_1.4.3 Signac_1.10.0                    
-##  [3] dplyr_1.1.2                       enrichR_3.2                      
-##  [5] pbapply_1.7-2                     monocle3_1.3.1                   
-##  [7] SingleCellExperiment_1.20.1       SummarizedExperiment_1.28.0      
-##  [9] MatrixGenerics_1.10.0             matrixStats_1.0.0                
-## [11] BSgenome.Hsapiens.UCSC.hg38_1.4.5 BSgenome_1.66.3                  
-## [13] rtracklayer_1.58.0                Biostrings_2.66.0                
-## [15] XVector_0.38.0                    GenomicRanges_1.50.2             
-## [17] GenomeInfoDb_1.34.9               IRanges_2.32.0                   
-## [19] S4Vectors_0.36.2                  stream2_2.0.0                    
-## [21] Biobase_2.58.0                    BiocGenerics_0.44.0              
-## [23] knitr_1.43                       
-## 
-## loaded via a namespace (and not attached):
-##   [1] rsvd_1.0.5                ica_1.0-3                
-##   [3] RcppRoll_0.3.0            Rsamtools_2.14.0         
-##   [5] lmtest_0.9-40             crayon_1.5.2             
-##   [7] MASS_7.3-57               WriteXLS_6.4.0           
-##   [9] nlme_3.1-157              backports_1.4.1          
-##  [11] qlcMatrix_0.9.7           GOSemSim_2.24.0          
-##  [13] rlang_1.1.1               HDO.db_0.99.1            
-##  [15] ROCR_1.0-11               irlba_2.3.5.1            
-##  [17] nloptr_2.0.3              limma_3.54.2             
-##  [19] scater_1.26.1             stringfish_0.15.8        
-##  [21] qs_0.25.5                 BiocParallel_1.32.6      
-##  [23] rjson_0.2.21              bit64_4.0.5              
-##  [25] glue_1.6.2                IRISFGM_1.6.0            
-##  [27] pheatmap_1.0.12           sctransform_0.3.5        
-##  [29] parallel_4.2.1            vipor_0.4.5              
-##  [31] SeuratDisk_0.0.0.9020     spatstat.sparse_3.0-2    
-##  [33] AnnotationDbi_1.60.2      regioneR_1.30.0          
-##  [35] DOSE_3.24.2               spatstat.geom_3.2-2      
-##  [37] VGAM_1.1-8                tidyselect_1.2.0         
-##  [39] rTRM_1.36.0               DrImpute_1.0             
-##  [41] SeuratObject_4.1.3        fitdistrplus_1.1-11      
-##  [43] XML_3.99-0.14             tidyr_1.3.0              
-##  [45] DEsingle_1.18.1           zoo_1.8-12               
-##  [47] ggpubr_0.6.0              GenomicAlignments_1.34.1 
-##  [49] org.Mm.eg.db_3.16.0       xtable_1.8-4             
-##  [51] magrittr_2.0.3            evaluate_0.21            
-##  [53] ggplot2_3.4.2             scuttle_1.8.4            
-##  [55] cli_3.6.1                 zlibbioc_1.44.0          
-##  [57] rstudioapi_0.15.0         miniUI_0.1.1.1           
-##  [59] sp_2.0-0                  bslib_0.5.1              
-##  [61] fastmatch_1.1-3           pbmcapply_1.5.1          
-##  [63] treeio_1.22.0             shiny_1.7.4.1            
-##  [65] BiocSingular_1.14.0       xfun_0.40                
-##  [67] gson_0.1.0                cluster_2.1.3            
-##  [69] tidygraph_1.2.3           KEGGREST_1.38.0          
-##  [71] tibble_3.2.1              expm_0.999-7             
-##  [73] ggrepel_0.9.3             ape_5.7-1                
-##  [75] listenv_0.9.0             png_0.1-8                
-##  [77] future_1.33.0             withr_2.5.0              
-##  [79] slam_0.1-50               bitops_1.0-7             
-##  [81] ggforce_0.4.1             plyr_1.8.8               
-##  [83] sparsesvd_0.2-2           pracma_2.4.2             
-##  [85] dqrng_0.3.0               pillar_1.9.0             
-##  [87] RcppParallel_5.1.7        cachem_1.0.8             
-##  [89] pscl_1.5.5.1              hdf5r_1.3.8              
-##  [91] kernlab_0.9-32            scatterplot3d_0.3-44     
-##  [93] clusterProfiler_4.6.2     DelayedMatrixStats_1.20.0
-##  [95] gamlss.data_6.0-2         vctrs_0.6.3              
-##  [97] ellipsis_0.3.2            generics_0.1.3           
-##  [99] RApiSerialize_0.1.2       qualV_0.3-5              
-## [101] tools_4.2.1               beeswarm_0.4.0           
-## [103] munsell_0.5.0             tweenr_2.0.2             
-## [105] fgsea_1.24.0              DelayedArray_0.24.0      
-## [107] fastmap_1.1.1             compiler_4.2.1           
-## [109] abind_1.4-5               httpuv_1.6.11            
-## [111] segmented_1.6-4           plotly_4.10.2            
-## [113] GenomeInfoDbData_1.2.9    gridExtra_2.3            
-## [115] edgeR_3.40.2              lattice_0.20-45          
-## [117] deldir_1.0-9              utf8_1.2.3               
-## [119] later_1.3.1               jsonlite_1.8.7           
-## [121] scales_1.2.1              docopt_0.7.1             
-## [123] ScaledMatrix_1.6.0        tidytree_0.4.5           
-## [125] carData_3.0-5             sparseMatrixStats_1.10.0 
-## [127] lazyeval_0.2.2            promises_1.2.1           
-## [129] car_3.1-2                 goftest_1.2-3            
-## [131] spatstat.utils_3.0-3      reticulate_1.31          
-## [133] rmarkdown_2.23            sandwich_3.0-2           
-## [135] cowplot_1.1.1             statmod_1.5.0            
-## [137] Rtsne_0.16                downloader_0.4           
-## [139] uwot_0.1.16               igraph_1.5.0             
-## [141] survival_3.3-1            numDeriv_2016.8-1.1      
-## [143] yaml_2.3.7                htmltools_0.5.6          
-## [145] memoise_2.0.1             BiocIO_1.8.0             
-## [147] locfit_1.5-9.8            Seurat_4.3.0.1           
-## [149] graphlayouts_1.0.0        viridisLite_0.4.2        
-## [151] assertthat_0.2.1          digest_0.6.33            
-## [153] mime_0.12                 RSQLite_2.3.1            
-## [155] yulab.utils_0.0.7         future.apply_1.11.0      
-## [157] data.table_1.14.8         blob_1.2.4               
-## [159] MCL_1.0                   splines_4.2.1            
-## [161] mixtools_2.0.0            RCurl_1.98-1.12          
-## [163] broom_1.0.5               colorspace_2.1-0         
-## [165] BiocManager_1.30.22       ggbeeswarm_0.7.2         
-## [167] aplot_0.2.0               anocva_0.1.1             
-## [169] maxLik_1.5-2              sass_0.4.7               
-## [171] Rcpp_1.0.11               RANN_2.6.1               
-## [173] mvtnorm_1.2-2             enrichplot_1.18.4        
-## [175] fansi_1.0.4               parallelly_1.36.0        
-## [177] R6_2.5.1                  grid_4.2.1               
-## [179] ggridges_0.5.4            lifecycle_1.0.3          
-## [181] bluster_1.8.0             miscTools_0.6-28         
-## [183] curl_5.0.1                ggsignif_0.6.4           
-## [185] minqa_1.2.5               leiden_0.4.3             
-## [187] jquerylib_0.1.4           Matrix_1.6-0             
-## [189] AdaptGauss_1.5.6          qvalue_2.30.0            
-## [191] glasso_1.11               RcppAnnoy_0.0.21         
-## [193] org.Hs.eg.db_3.16.0       RColorBrewer_1.1-3       
-## [195] spatstat.explore_3.2-1    stringr_1.5.0            
-## [197] htmlwidgets_1.6.2         beachmat_2.14.2          
-## [199] polyclip_1.10-4           purrr_1.0.2              
-## [201] shadowtext_0.1.2          gridGraphics_0.5-1       
-## [203] gamlss_5.4-12             terra_1.7-39             
-## [205] globals_0.16.2            patchwork_1.1.2          
-## [207] spatstat.random_3.1-5     bdsmatrix_1.3-6          
-## [209] progressr_0.14.0          codetools_0.2-18         
-## [211] FNN_1.1.3.2               metapod_1.6.0            
-## [213] GO.db_3.16.0              gtable_0.3.3             
-## [215] DBI_1.1.3                 Polychrome_1.5.1         
-## [217] ggfun_0.1.2               tensor_1.5               
-## [219] httr_1.4.6                KernSmooth_2.23-20       
-## [221] stringi_1.7.12            reshape2_1.4.4           
-## [223] farver_2.1.1              viridis_0.6.4            
-## [225] ggtree_3.6.2              bbmle_1.0.25             
-## [227] boot_1.3-28               BiocNeighbors_1.16.0     
-## [229] lme4_1.1-34               restfulr_0.0.15          
-## [231] ggplotify_0.1.2           scattermore_1.2          
-## [233] scran_1.26.2              bit_4.0.5                
-## [235] scatterpie_0.2.1          spatstat.data_3.0-1      
-## [237] ggraph_2.1.0              pkgconfig_2.0.3          
-## [239] gamlss.dist_6.0-5         rstatix_0.7.2</code></pre>
 </div>
 
 
