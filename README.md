@@ -66,28 +66,28 @@ if (length(to_install_github) > 0) {
 
 
 # Sixth, install STREAM
-devtools::install_github("YangLi-Bio/stream2")
+devtools::install_github("OSU-BMBL/STREAM")
 ```
 
 We provided the following tutorials to show how to use STREAM to build enhancer regulons (eRegulons) and enhancer-driven 
 gene regulatory networks (eGRNs) by using single-cell multiomics/multimodal data:
 
-* [Simulated data analyses](https://yangli-bio.github.io/stream2/articles/data-simulation.html)
+* [Simulated data analyses](https://osu-bmbl.github.io/STREAM/articles/data-simulation.html)
 
-* [Biological data analyses](https://yangli-bio.github.io/stream2/articles/eRegulon-inference.html)
+* [Biological data analyses](https://osu-bmbl.github.io/STREAM/articles/eRegulon-inference.html)
 
 
 Please consider citing our paper if you used STREAM:
 ```
-@article{li2023stream,
+@article{li2024stream,
   title={Enhancer-driven gene regulatory networks inference from single-cell RNA-seq and ATAC-seq data},
-  author={Li, Yang and Ma, Anjun and Wang, Yizhong and Guo, Qi and Wang, Cankun and Chen, Shuo and Fu, Hongjun and Liu, Bingqiang and Ma, Qin},
-  journal={bioRxiv},
+  author={Li, Yang and Ma, Anjun and Wang, Yizhong and Guo, Qi and Wang, Cankun and Fu, Hongjun and Liu, Bingqiang and Ma, Qin},
+  journal={Briefings in Bioinformatics},
   volume={0},
   number={0},
   pages={0},
-  year={2023},
-  publisher={Cold Spring Harbor Laborator}
+  year={2024},
+  publisher={Oxford University Press}
 }
 ```
 
