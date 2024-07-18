@@ -1,4 +1,4 @@
-url: https://yangli-bio.github.io/stream2/
+url: https://osu-bmbl.github.io/STREAM/
 template:
   params:
     bootstrap: 5
@@ -21,16 +21,16 @@ navbar:
         href: "reference/index.html"
     right:
       - icon: fa-github
-        href: "https://github.com/YangLi-Bio/stream2"
+        href: "https://github.com/OSU-BMBL/STREAM"
 
 home:
   src: "pkgdown/index.md"
   cran: false
   links:
    - text: Browse source code
-     href: https://github.com/YangLi-Bio/stream2
+     href: https://github.com/OSU-BMBL/STREAM
    - text: Report a bug
-     href: https://github.com/YangLi-Bio/stream2/issues
+     href: https://github.com/OSU-BMBL/STREAM/issues
   license:
     - text: full license
       href: "docs/LICENSE.html"
