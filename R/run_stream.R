@@ -221,7 +221,7 @@ run_stream <- function(obj = NULL,
 
 
   options(timeout = 2000)
-  load(url(url.link))
+  load(url.link)
   message ("Loaded TF binding sites from JASPAR 2022.")
   TF.CRE.pairs <- find_TFBS(peaks = rownames(obj[[peak.assay]]),
                             TFBS.list = TFBS.list, org = org, 
